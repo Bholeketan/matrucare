@@ -291,7 +291,9 @@
                     } else {
                         appendMessage(data.message, 'received');
                     }
-                     fetchAndDisplayMessages();
+                     if (messagesContent.offsetParent !== null) {
+                        fetchAndDisplayMessages();
+                    }
                 });
             };
 
@@ -305,7 +307,10 @@
                 const patientCard = document.querySelector(`[data-patient-id="${partner.id}"]`);
                 if(patientCard){
                     const badge = patientCard.querySelector('.notification-badge');
-                    if(badge) badge.classList.add('hidden');
+                    if(badge) {
+                        badge.textContent = '';
+                        badge.classList.add('hidden');
+                    }
                 }
 
 
@@ -474,41 +479,39 @@
             const fetchAndDisplayMessages = async () => {
                 const token = localStorage.getItem('matru-care-token');
                 try {
-                    const response = await fetch(`${API_BASE_URL}/api/chat/all`, { // Assuming an endpoint to get all messages
+                    // FIX: Use the existing patients endpoint instead of a non-existent 'all chats' endpoint.
+                    const response = await fetch(`${API_BASE_URL}/api/doctor/patients`, {
                         headers: { 'x-auth-token': token }
                     });
-                    if (!response.ok) throw new Error('Failed to fetch messages');
-                    const conversations = await response.json();
+                    if (!response.ok) throw new Error('Failed to fetch patients for messaging.');
+                    const patients = await response.json();
 
                     messageList.innerHTML = '';
-                    if (conversations.length === 0) {
-                        messageList.innerHTML = '<p class="text-gray-500">You have no messages.</p>';
+                    if (patients.length === 0) {
+                        messageList.innerHTML = '<p class="text-gray-500">You have no patients to message.</p>';
                         return;
                     }
 
-                    conversations.forEach(convo => {
-                        const lastMessage = convo.messages[convo.messages.length - 1];
-                        if(!lastMessage) return;
-                        
+                    patients.forEach(patient => {
                         const messageCard = document.createElement('div');
                         messageCard.className = 'bg-white p-4 rounded-lg shadow-md flex items-center justify-between cursor-pointer hover:bg-gray-50';
                         messageCard.innerHTML = `
                              <div class="flex items-center">
                                 <div class="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center mr-4">
-                                    <span class="text-xl font-bold matru-pink">${convo.partner.name.charAt(0)}</span>
+                                    <span class="text-xl font-bold matru-pink">${patient.name.charAt(0)}</span>
                                 </div>
                                 <div>
-                                    <p class="font-bold text-gray-800">${convo.partner.name}</p>
-                                    <p class="text-sm text-gray-500 truncate">${lastMessage.message}</p>
+                                    <p class="font-bold text-gray-800">${patient.name}</p>
+                                    <p class="text-sm text-gray-500">Click to open chat</p>
                                 </div>
                             </div>
                             <div class="text-xs text-gray-400">
-                                ${new Date(lastMessage.timestamp).toLocaleTimeString()}
+                                <i class="fas fa-arrow-right"></i>
                             </div>
                         `;
                         messageCard.addEventListener('click', () => {
-                            openChat({ id: convo.partner.id, name: convo.partner.name });
-                            switchTab('patients');
+                            openChat({ id: patient.userId, name: patient.name });
+                            switchTab('patients'); // Switch back to patients view to see the chat modal logically placed
                         });
                         messageList.appendChild(messageCard);
                     });
