@@ -37,6 +37,17 @@
             color: #1F2937; /* gray-800 */
             border-radius: 20px 20px 20px 5px;
         }
+        /* Notification Dot */
+        .notification-dot {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 10px;
+            height: 10px;
+            background-color: #EF4444; /* red-500 */
+            border-radius: 50%;
+            border: 2px solid white;
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -46,10 +57,12 @@
              <div class="container mx-auto px-4 py-3 flex justify-between items-center">
                 <img src="matrucare_logo.jpg" alt="Matru Care Logo" class="h-12 w-auto">
                 <div class="relative">
-                    <button id="profile-button" class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                    <button id="profile-button" class="relative w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
                         <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        <span id="mother-notification-dot" class="notification-dot hidden"></span>
                     </button>
                     <div id="profile-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-xl z-50 py-1">
+                        <a href="#" id="mother-messages-link" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Messages</a>
                         <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Update Profile</a>
                         <a href="#" id="logout-button" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
                     </div>
@@ -64,6 +77,10 @@
                     <i class="fas fa-comment-dots mr-2"></i>Chat with my Doctor
                 </button>
             </section>
+             <div id="mother-messages-content" class="hidden">
+                 <h3 class="text-2xl font-semibold text-gray-700 mb-4">Your Conversations</h3>
+                 <div id="mother-conversations-list" class="space-y-3"></div>
+            </div>
         </main>
     </div>
 
@@ -72,10 +89,12 @@
             <div class="container mx-auto px-4 py-3 flex justify-between items-center">
                 <h1 class="text-2xl font-bold doctor-primary">Doctor Dashboard</h1>
                 <div class="relative">
-                    <button id="doctor-profile-button" class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                    <button id="doctor-profile-button" class="relative w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
                          <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                         <span id="doctor-notification-dot" class="notification-dot hidden"></span>
                     </button>
                     <div id="doctor-profile-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-xl z-50 py-1">
+                        <a href="#" id="doctor-messages-link" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Messages</a>
                         <a href="#" id="update-profile-link" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Update Profile</a>
                         <a href="#" id="doctor-logout-button" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
                     </div>
@@ -97,6 +116,10 @@
             <div id="appointments-content" class="hidden">
                  <h3 class="text-2xl font-semibold text-gray-700 mb-4">Upcoming Appointments</h3>
                  <div class="bg-white p-8 rounded-lg shadow text-center"><p class="text-gray-500">Appointments feature coming soon.</p></div>
+            </div>
+            <div id="doctor-messages-content" class="hidden">
+                 <h3 class="text-2xl font-semibold text-gray-700 mb-4">Your Conversations</h3>
+                 <div id="doctor-conversations-list" class="space-y-3"></div>
             </div>
             <div id="doctor-details-content" class="hidden">
                 <h3 class="text-2xl font-semibold text-gray-700 mb-4">Update Your Information</h3>
@@ -140,7 +163,8 @@
                     <input type="password" id="register-password" placeholder="Password" class="w-full px-4 py-2 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400" required>
                     <div>
                         <label for="register-status" class="block text-sm font-medium text-gray-600 mb-1">I am a...</label>
-                        <select id="register-status" class="w-full px-4 py-2 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"> 
+                        <select id="register-status" class="w-full px-4 py-2 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400">
+                            <option value="Mother">Mother</option>
                             <option value="Doctor">Doctor</option>
                         </select>
                     </div>
@@ -200,6 +224,18 @@
             const patientsContent = document.getElementById('patients-content');
             const appointmentsContent = document.getElementById('appointments-content');
             const doctorDetailsContent = document.getElementById('doctor-details-content');
+
+            // --- New Message Section Elements ---
+            const doctorMessagesLink = document.getElementById('doctor-messages-link');
+            const doctorMessagesContent = document.getElementById('doctor-messages-content');
+            const doctorConversationsList = document.getElementById('doctor-conversations-list');
+            const motherMessagesLink = document.getElementById('mother-messages-link');
+            const motherMessagesContent = document.getElementById('mother-messages-content');
+            const motherConversationsList = document.getElementById('mother-conversations-list');
+            const homeContent = document.getElementById('home');
+            const doctorNotificationDot = document.getElementById('doctor-notification-dot');
+            const motherNotificationDot = document.getElementById('mother-notification-dot');
+
             
             // --- Chat Elements ---
             const chatModal = document.getElementById('chat-modal');
@@ -217,6 +253,8 @@
                 doctorDashboard.classList.add('hidden');
                 formsSection.classList.add('hidden');
                 motherNameSpan.textContent = userData.name;
+                homeContent.classList.remove('hidden');
+                motherMessagesContent.classList.add('hidden');
             };
             const showDoctorApp = (userData) => {
                 mainApp.classList.add('hidden');
@@ -224,6 +262,7 @@
                 formsSection.classList.add('hidden');
                 doctorNameSpan.textContent = userData.name;
                 fetchPatients(userData.token);
+                switchTab('patients'); // Default to patients tab
             };
             const showForms = () => {
                 mainApp.classList.add('hidden');
@@ -243,8 +282,12 @@
                 });
                 socket.on('receive-chat-message', (data) => {
                     if (chatModal.classList.contains('hidden') || data.sender !== currentChatPartner?.id) {
-                        // Optional: show a notification for new messages
-                        console.log('New message received from', data.sender);
+                        const user = JSON.parse(localStorage.getItem('matru-care-user'));
+                        if (user.status === 'Doctor') {
+                            doctorNotificationDot.classList.remove('hidden');
+                        } else {
+                            motherNotificationDot.classList.remove('hidden');
+                        }
                     } else {
                         appendMessage(data.message, 'received');
                     }
@@ -275,7 +318,6 @@
 
             const appendMessage = (message, type) => {
                 const bubbleClass = type === 'sent' ? 'chat-bubble-sent self-end' : 'chat-bubble-received self-start';
-                // UPDATED: Added w-auto to make the bubble fit the text content
                 const messageEl = `<div class="max-w-xs md:max-w-md p-3 w-auto ${bubbleClass}">${message}</div>`;
                 chatMessagesDiv.insertAdjacentHTML('beforeend', messageEl);
                 chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
@@ -370,7 +412,59 @@
                 }
             });
             
-            // --- DOCTOR & MOTHER DASHBOARD LOGIC ---
+            // --- DASHBOARD & CONVERSATION LOGIC ---
+            const fetchAndDisplayConversations = async (token, listElement, partnerPrefix = '') => {
+                // This is a placeholder for an API endpoint that would fetch all conversations
+                // For now, it re-uses the existing fetch logic. In a real app, this would be different.
+                try {
+                    const user = JSON.parse(localStorage.getItem('matru-care-user'));
+                    let partners = [];
+                    if (user.status === 'Doctor') {
+                         const response = await fetch(`${API_BASE_URL}/api/doctor/patients`, { headers: { 'x-auth-token': token } });
+                         if (!response.ok) throw new Error('Failed to fetch patients');
+                         partners = await response.json();
+                    } else { // Mother
+                         const response = await fetch(`${API_BASE_URL}/api/mother/doctor`, { headers: { 'x-auth-token': token } });
+                         if (!response.ok) return; // May not have a doctor assigned yet
+                         const doctor = await response.json();
+                         partners = [doctor];
+                    }
+
+                    listElement.innerHTML = '';
+                    if (partners.length === 0) {
+                        listElement.innerHTML = '<p class="text-gray-500 text-center">No conversations yet.</p>';
+                        return;
+                    }
+
+                    partners.forEach(partner => {
+                        const conversationCard = document.createElement('div');
+                        conversationCard.className = 'bg-white p-4 rounded-lg shadow-md flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors';
+                        
+                        const partnerDisplayName = `${partnerPrefix}${partner.name}`;
+
+                        conversationCard.innerHTML = `
+                             <div class="flex items-center">
+                                <div class="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center mr-4">
+                                    <span class="text-xl font-bold text-pink-500">${partner.name.charAt(0)}</span>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-gray-800">${partnerDisplayName}</p>
+                                    <p class="text-sm text-gray-500">Click to open chat</p>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right text-gray-400"></i>
+                        `;
+                        conversationCard.addEventListener('click', () => {
+                             openChat({ id: partner.userId, name: partnerDisplayName });
+                        });
+                        listElement.appendChild(conversationCard);
+                    });
+
+                } catch (error) {
+                    listElement.innerHTML = `<p class="text-red-500">${error.message}</p>`;
+                }
+            };
+            
             const fetchPatients = async (token) => {
                 try {
                     const response = await fetch(`${API_BASE_URL}/api/doctor/patients`, {
@@ -434,11 +528,13 @@
             });
 
             const switchTab = (activeTab) => {
+                // Handle tabs styling
                 [tabPatients, tabAppointments].forEach(tab => {
                     tab.classList.remove('border-blue-500', 'text-blue-600');
                     tab.classList.add('border-transparent', 'text-gray-500');
                 });
-                [patientsContent, appointmentsContent, doctorDetailsContent].forEach(content => content.classList.add('hidden'));
+                // Handle content visibility
+                [patientsContent, appointmentsContent, doctorDetailsContent, doctorMessagesContent].forEach(content => content.classList.add('hidden'));
 
                 if (activeTab === 'patients') {
                     tabPatients.classList.add('border-blue-500', 'text-blue-600');
@@ -448,6 +544,11 @@
                     appointmentsContent.classList.remove('hidden');
                 } else if (activeTab === 'details') {
                     doctorDetailsContent.classList.remove('hidden');
+                } else if (activeTab === 'messages') {
+                    doctorMessagesContent.classList.remove('hidden');
+                    const token = localStorage.getItem('matru-care-token');
+                    fetchAndDisplayConversations(token, doctorConversationsList);
+                    doctorNotificationDot.classList.add('hidden'); // Hide dot when viewing messages
                 }
             };
 
@@ -465,11 +566,20 @@
             tabPatients.addEventListener('click', () => switchTab('patients'));
             tabAppointments.addEventListener('click', () => switchTab('appointments'));
             updateProfileLink.addEventListener('click', (e) => { e.preventDefault(); switchTab('details'); doctorProfileDropdown.classList.add('hidden'); });
+            doctorMessagesLink.addEventListener('click', (e) => { e.preventDefault(); switchTab('messages'); doctorProfileDropdown.classList.add('hidden'); });
+            motherMessagesLink.addEventListener('click', (e) => { 
+                e.preventDefault(); 
+                homeContent.classList.add('hidden');
+                motherMessagesContent.classList.remove('hidden');
+                profileDropdown.classList.add('hidden');
+                const token = localStorage.getItem('matru-care-token');
+                fetchAndDisplayConversations(token, motherConversationsList, 'Dr. ');
+                motherNotificationDot.classList.add('hidden'); // Hide dot when viewing
+            });
 
             // --- INITIALIZATION ---
             checkLoginStatus();
         });
     </script>
 </body>
-
 </html>
