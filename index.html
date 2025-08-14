@@ -194,390 +194,407 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const API_BASE_URL = 'https://matru-care-backend.onrender.com';
-            let socket;
+    document.addEventListener('DOMContentLoaded', () => {
+        const API_BASE_URL = 'https://matru-care-backend.onrender.com';
+        let socket;
 
-            // --- Element Selectors ---
-            const mainApp = document.getElementById('main-app');
-            const doctorDashboard = document.getElementById('doctor-dashboard');
-            const formsSection = document.getElementById('forms-section');
-            const loginFormContainer = document.getElementById('login-form-container');
-            const registerFormContainer = document.getElementById('register-form-container');
-            const loginForm = document.getElementById('login-form');
-            const registerForm = document.getElementById('register-form');
-            const loginError = document.getElementById('login-error');
-            const registerError = document.getElementById('register-error');
-            const showRegisterLink = document.getElementById('show-register');
-            const showLoginLink = document.getElementById('show-login');
-            const logoutButton = document.getElementById('logout-button');
-            const doctorLogoutButton = document.getElementById('doctor-logout-button');
-            const profileButton = document.getElementById('profile-button');
-            const profileDropdown = document.getElementById('profile-dropdown');
-            const doctorProfileButton = document.getElementById('doctor-profile-button');
-            const doctorProfileDropdown = document.getElementById('doctor-profile-dropdown');
-            const updateProfileLink = document.getElementById('update-profile-link');
-            const doctorNameSpan = document.getElementById('doctor-name');
-            const motherNameSpan = document.getElementById('mother-name');
-            const patientsListDiv = document.getElementById('patients-list');
-            const tabPatients = document.getElementById('tab-patients');
-            const tabAppointments = document.getElementById('tab-appointments');
-            const tabMessages = document.getElementById('tab-messages');
-            const patientsContent = document.getElementById('patients-content');
-            const appointmentsContent = document.getElementById('appointments-content');
-            const messagesContent = document.getElementById('messages-content');
-            const messageList = document.getElementById('message-list');
-            const messagesNotificationBadge = document.getElementById('messages-notification-badge');
-            const doctorDetailsContent = document.getElementById('doctor-details-content');
-            
-            // --- Chat Elements ---
-            const chatModal = document.getElementById('chat-modal');
-            const closeChatButton = document.getElementById('close-chat-button');
-            const chatPartnerName = document.getElementById('chat-partner-name');
-            const chatMessagesDiv = document.getElementById('chat-messages');
-            const chatForm = document.getElementById('chat-form');
-            const chatInput = document.getElementById('chat-input');
-            const motherChatButton = document.getElementById('mother-chat-button');
-            let currentChatPartner = null;
+        // --- Element Selectors ---
+        const mainApp = document.getElementById('main-app');
+        const doctorDashboard = document.getElementById('doctor-dashboard');
+        const formsSection = document.getElementById('forms-section');
+        const loginFormContainer = document.getElementById('login-form-container');
+        const registerFormContainer = document.getElementById('register-form-container');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const loginError = document.getElementById('login-error');
+        const registerError = document.getElementById('register-error');
+        const showRegisterLink = document.getElementById('show-register');
+        const showLoginLink = document.getElementById('show-login');
+        const logoutButton = document.getElementById('logout-button');
+        const doctorLogoutButton = document.getElementById('doctor-logout-button');
+        const profileButton = document.getElementById('profile-button');
+        const profileDropdown = document.getElementById('profile-dropdown');
+        const doctorProfileButton = document.getElementById('doctor-profile-button');
+        const doctorProfileDropdown = document.getElementById('doctor-profile-dropdown');
+        const updateProfileLink = document.getElementById('update-profile-link');
+        const doctorNameSpan = document.getElementById('doctor-name');
+        const motherNameSpan = document.getElementById('mother-name');
+        const patientsListDiv = document.getElementById('patients-list');
+        const tabPatients = document.getElementById('tab-patients');
+        const tabAppointments = document.getElementById('tab-appointments');
+        const tabMessages = document.getElementById('tab-messages');
+        const patientsContent = document.getElementById('patients-content');
+        const appointmentsContent = document.getElementById('appointments-content');
+        const messagesContent = document.getElementById('messages-content');
+        const messageList = document.getElementById('message-list');
+        const messagesNotificationBadge = document.getElementById('messages-notification-badge');
+        const doctorDetailsContent = document.getElementById('doctor-details-content');
 
-            // --- UI TOGGLE FUNCTIONS ---
-            const showMotherApp = (userData) => {
-                mainApp.classList.remove('hidden');
-                doctorDashboard.classList.add('hidden');
-                formsSection.classList.add('hidden');
-                motherNameSpan.textContent = userData.name;
-            };
-            const showDoctorApp = (userData) => {
-                mainApp.classList.add('hidden');
-                doctorDashboard.classList.remove('hidden');
-                formsSection.classList.add('hidden');
-                doctorNameSpan.textContent = userData.name;
-                fetchPatients(userData.token);
-            };
-            const showForms = () => {
-                mainApp.classList.add('hidden');
-                doctorDashboard.classList.add('hidden');
-                formsSection.classList.remove('hidden');
-                loginFormContainer.classList.remove('hidden');
-                registerFormContainer.classList.add('hidden');
-            };
+        // --- Chat Elements ---
+        const chatModal = document.getElementById('chat-modal');
+        const closeChatButton = document.getElementById('close-chat-button');
+        const chatPartnerName = document.getElementById('chat-partner-name');
+        const chatMessagesDiv = document.getElementById('chat-messages');
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+        const motherChatButton = document.getElementById('mother-chat-button');
+        let currentChatPartner = null;
 
-            // --- SOCKET.IO & CHAT LOGIC ---
-            const connectSocket = (userId) => {
-                if (socket) socket.disconnect();
-                socket = io(API_BASE_URL);
-                socket.on('connect', () => {
-                    console.log('Socket connected:', socket.id);
-                    socket.emit('join-room', userId);
-                });
-                socket.on('receive-chat-message', (data) => {
-                    if (chatModal.classList.contains('hidden') || data.sender !== currentChatPartner?.id) {
-                        // Show notification badge
-                        const patientCard = document.querySelector(`[data-patient-id="${data.sender}"]`);
-                        if(patientCard) {
-                            let badge = patientCard.querySelector('.notification-badge');
-                            if(!badge) {
-                                badge = document.createElement('span');
-                                badge.className = 'notification-badge';
-                                patientCard.querySelector('.chat-btn').parentElement.style.position = 'relative';
-                                patientCard.querySelector('.chat-btn').parentElement.appendChild(badge);
-                            }
-                            badge.textContent = (parseInt(badge.textContent) || 0) + 1;
-                            badge.classList.remove('hidden');
+        // --- UI TOGGLE FUNCTIONS ---
+        const showMotherApp = (userData) => {
+            mainApp.classList.remove('hidden');
+            doctorDashboard.classList.add('hidden');
+            formsSection.classList.add('hidden');
+            motherNameSpan.textContent = userData.name;
+        };
+        const showDoctorApp = (userData) => {
+            mainApp.classList.add('hidden');
+            doctorDashboard.classList.remove('hidden');
+            formsSection.classList.add('hidden');
+            doctorNameSpan.textContent = userData.name;
+            fetchPatients(userData.token);
+        };
+        const showForms = () => {
+            mainApp.classList.add('hidden');
+            doctorDashboard.classList.add('hidden');
+            formsSection.classList.remove('hidden');
+            loginFormContainer.classList.remove('hidden');
+            registerFormContainer.classList.add('hidden');
+        };
+
+        // --- SOCKET.IO & CHAT LOGIC ---
+        // REVISED: This function now handles all socket connections and events
+        const setupSocketConnection = (user) => {
+            if (socket) {
+                socket.disconnect();
+            }
+
+            socket = io(API_BASE_URL, {
+                // You can optionally send the token for authentication with socket middleware
+                auth: { token: localStorage.getItem('matru-care-token') }
+            });
+
+            socket.on('connect', () => {
+                console.log('Socket connected successfully:', socket.id);
+                // Join the user-specific room to receive targeted events
+                socket.emit('join-room', user.id);
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Socket disconnected.');
+            });
+
+            // --- IMPORTANT: LISTEN FOR THE FORCE-LOGOUT EVENT ---
+            socket.on('force-logout', (data) => {
+                console.warn('Force logout event received:', data.message);
+                // 1. Alert the user
+                alert(data.message);
+                // 2. Use the existing logout handler for cleanup and UI update
+                handleLogout();
+            });
+
+            // Listener for incoming chat messages
+            socket.on('receive-chat-message', (data) => {
+                if (chatModal.classList.contains('hidden') || data.sender !== currentChatPartner?.id) {
+                    const patientCard = document.querySelector(`[data-patient-id="${data.sender}"]`);
+                    if(patientCard) {
+                        let badge = patientCard.querySelector('.notification-badge');
+                        if(!badge) {
+                            badge = document.createElement('span');
+                            badge.className = 'notification-badge';
+                            patientCard.querySelector('.chat-btn').parentElement.style.position = 'relative';
+                            patientCard.querySelector('.chat-btn').parentElement.appendChild(badge);
                         }
-                        messagesNotificationBadge.classList.remove('hidden');
-
-                    } else {
-                        appendMessage(data.message, 'received');
+                        badge.textContent = (parseInt(badge.textContent) || 0) + 1;
+                        badge.classList.remove('hidden');
                     }
-                     if (messagesContent.offsetParent !== null) {
-                        fetchAndDisplayMessages();
-                    }
-                });
-            };
-
-            const openChat = async (partner) => {
-                currentChatPartner = partner;
-                chatPartnerName.textContent = partner.name;
-                chatMessagesDiv.innerHTML = ''; // Clear previous messages
-                chatModal.classList.remove('hidden');
-                
-                // Hide notification badge when chat is opened
-                const patientCard = document.querySelector(`[data-patient-id="${partner.id}"]`);
-                if(patientCard){
-                    const badge = patientCard.querySelector('.notification-badge');
-                    if(badge) {
-                        badge.textContent = '';
-                        badge.classList.add('hidden');
-                    }
-                }
-
-
-                const token = localStorage.getItem('matru-care-token');
-                try {
-                    const response = await fetch(`${API_BASE_URL}/api/chat/history/${partner.id}`, {
-                        headers: { 'x-auth-token': token }
-                    });
-                    const messages = await response.json();
-                    const currentUser = JSON.parse(localStorage.getItem('matru-care-user'));
-                    messages.forEach(msg => {
-                        const type = msg.sender._id === currentUser.id ? 'sent' : 'received';
-                        appendMessage(msg.message, type);
-                    });
-                } catch (error) {
-                    chatMessagesDiv.innerHTML = '<p class="text-red-500">Could not load chat history.</p>';
-                }
-            };
-
-            const appendMessage = (message, type) => {
-                const bubbleClass = type === 'sent' ? 'chat-bubble-sent self-end' : 'chat-bubble-received self-start';
-                const messageEl = `<div class="max-w-xs md:max-w-md p-3 w-auto ${bubbleClass}">${message}</div>`;
-                chatMessagesDiv.insertAdjacentHTML('beforeend', messageEl);
-                chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
-            };
-
-            chatForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const message = chatInput.value.trim();
-                if (message && currentChatPartner) {
-                    const token = localStorage.getItem('matru-care-token');
-                    fetch(`${API_BASE_URL}/api/chat/send`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
-                        body: JSON.stringify({ receiverId: currentChatPartner.id, message }),
-                    });
-                    appendMessage(message, 'sent');
-                    chatInput.value = '';
-                }
-            });
-
-            closeChatButton.addEventListener('click', () => {
-                chatModal.classList.add('hidden');
-                currentChatPartner = null;
-            });
-
-            // --- AUTHENTICATION LOGIC ---
-            const checkLoginStatus = () => {
-                const token = localStorage.getItem('matru-care-token');
-                const user = JSON.parse(localStorage.getItem('matru-care-user'));
-                if (token && user) {
-                    connectSocket(user.id);
-                    if (user.status === 'Doctor') {
-                        showDoctorApp({ ...user, token });
-                    } else {
-                        showMotherApp(user);
-                    }
+                    messagesNotificationBadge.classList.remove('hidden');
                 } else {
-                    showForms();
+                    appendMessage(data.message, 'received');
                 }
-            };
+                if (messagesContent.offsetParent !== null) {
+                    fetchAndDisplayMessages();
+                }
+            });
+        };
 
-            const handleLogout = () => {
-                if (socket) socket.disconnect();
-                localStorage.removeItem('matru-care-token');
-                localStorage.removeItem('matru-care-user');
+        const openChat = async (partner) => {
+            currentChatPartner = partner;
+            chatPartnerName.textContent = partner.name;
+            chatMessagesDiv.innerHTML = ''; // Clear previous messages
+            chatModal.classList.remove('hidden');
+
+            const patientCard = document.querySelector(`[data-patient-id="${partner.id}"]`);
+            if (patientCard) {
+                const badge = patientCard.querySelector('.notification-badge');
+                if (badge) {
+                    badge.textContent = '';
+                    badge.classList.add('hidden');
+                }
+            }
+
+            const token = localStorage.getItem('matru-care-token');
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/chat/history/${partner.id}`, {
+                    headers: { 'x-auth-token': token }
+                });
+                const messages = await response.json();
+                const currentUser = JSON.parse(localStorage.getItem('matru-care-user'));
+                messages.forEach(msg => {
+                    const type = msg.sender._id === currentUser.id ? 'sent' : 'received';
+                    appendMessage(msg.message, type);
+                });
+            } catch (error) {
+                chatMessagesDiv.innerHTML = '<p class="text-red-500">Could not load chat history.</p>';
+            }
+        };
+
+        const appendMessage = (message, type) => {
+            const bubbleClass = type === 'sent' ? 'chat-bubble-sent self-end' : 'chat-bubble-received self-start';
+            const messageEl = `<div class="max-w-xs md:max-w-md p-3 w-auto ${bubbleClass}">${message}</div>`;
+            chatMessagesDiv.insertAdjacentHTML('beforeend', messageEl);
+            chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+        };
+
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const message = chatInput.value.trim();
+            if (message && currentChatPartner) {
+                const token = localStorage.getItem('matru-care-token');
+                fetch(`${API_BASE_URL}/api/chat/send`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+                    body: JSON.stringify({ receiverId: currentChatPartner.id, message }),
+                });
+                appendMessage(message, 'sent');
+                chatInput.value = '';
+            }
+        });
+
+        closeChatButton.addEventListener('click', () => {
+            chatModal.classList.add('hidden');
+            currentChatPartner = null;
+        });
+
+        // --- AUTHENTICATION LOGIC ---
+        const checkLoginStatus = () => {
+            const token = localStorage.getItem('matru-care-token');
+            const user = JSON.parse(localStorage.getItem('matru-care-user'));
+            if (token && user) {
+                // Call the new, comprehensive socket setup function
+                setupSocketConnection(user);
+                if (user.status === 'Doctor') {
+                    showDoctorApp({ ...user, token });
+                } else {
+                    showMotherApp(user);
+                }
+            } else {
                 showForms();
-            };
+            }
+        };
 
-            loginForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                loginError.classList.add('hidden');
-                const email = document.getElementById('login-email').value;
-                const password = document.getElementById('login-password').value;
-                try {
-                    const response = await fetch(`${API_BASE_URL}/api/login`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email, password }),
-                    });
-                    const data = await response.json();
-                    if (!response.ok) throw new Error(data.msg || 'Login failed');
-                    localStorage.setItem('matru-care-token', data.token);
-                    localStorage.setItem('matru-care-user', JSON.stringify(data.user));
-                    checkLoginStatus();
-                } catch (error) {
-                    loginError.textContent = error.message;
-                    loginError.classList.remove('hidden');
-                }
+        const handleLogout = () => {
+            if (socket) socket.disconnect();
+            localStorage.removeItem('matru-care-token');
+            localStorage.removeItem('matru-care-user');
+            showForms();
+        };
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loginError.classList.add('hidden');
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password }),
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.msg || 'Login failed');
+                localStorage.setItem('matru-care-token', data.token);
+                localStorage.setItem('matru-care-user', JSON.stringify(data.user));
+                checkLoginStatus();
+            } catch (error) {
+                loginError.textContent = error.message;
+                loginError.classList.remove('hidden');
+            }
+        });
+
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            registerError.classList.add('hidden');
+            const name = document.getElementById('register-name').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const status = document.getElementById('register-status').value;
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password, status }),
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.msg || 'Registration failed');
+                localStorage.setItem('matru-care-token', data.token);
+                localStorage.setItem('matru-care-user', JSON.stringify(data.user));
+                checkLoginStatus();
+            } catch (error) {
+                registerError.textContent = error.message;
+                registerError.classList.remove('hidden');
+            }
+        });
+
+        // --- DOCTOR & MOTHER DASHBOARD LOGIC ---
+        const fetchPatients = async (token) => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/doctor/patients`, {
+                    headers: { 'x-auth-token': token }
+                });
+                if (!response.ok) throw new Error('Failed to fetch patients');
+                const patients = await response.json();
+                displayPatients(patients);
+            } catch (error) {
+                patientsListDiv.innerHTML = `<p class="text-red-500">${error.message}</p>`;
+            }
+        };
+
+        const displayPatients = (patients) => {
+            patientsListDiv.innerHTML = '';
+            if (patients.length === 0) {
+                patientsListDiv.innerHTML = '<p class="text-gray-500">You have no assigned patients.</p>';
+                return;
+            }
+            patients.forEach(patient => {
+                const patientCard = document.createElement('div');
+                patientCard.className = 'bg-white p-4 rounded-lg shadow-md flex items-center justify-between';
+                patientCard.setAttribute('data-patient-id', patient.userId);
+                patientCard.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+                            <span class="text-xl font-bold doctor-primary">${patient.name.charAt(0)}</span>
+                        </div>
+                        <div>
+                            <p class="font-bold text-gray-800">${patient.name}</p>
+                            <p class="text-sm text-gray-500">${patient.email}</p>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2 relative">
+                        <button title="Chat" class="chat-btn p-2 rounded-full hover:bg-gray-200 transition">
+                            <i class="fas fa-comment-dots text-gray-600"></i>
+                        </button>
+                        <button title="Video Call" class="p-2 rounded-full hover:bg-gray-200 transition">
+                            <i class="fas fa-video text-gray-600"></i>
+                        </button>
+                    </div>
+                `;
+                patientCard.querySelector('.chat-btn').addEventListener('click', () => {
+                    openChat({ id: patient.userId, name: patient.name });
+                });
+                patientsListDiv.appendChild(patientCard);
             });
+        };
 
-            registerForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                registerError.classList.add('hidden');
-                const name = document.getElementById('register-name').value;
-                const email = document.getElementById('register-email').value;
-                const password = document.getElementById('register-password').value;
-                const status = document.getElementById('register-status').value;
-                try {
-                    const response = await fetch(`${API_BASE_URL}/api/register`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name, email, password, status }),
-                    });
-                    const data = await response.json();
-                    if (!response.ok) throw new Error(data.msg || 'Registration failed');
-                    localStorage.setItem('matru-care-token', data.token);
-                    localStorage.setItem('matru-care-user', JSON.stringify(data.user));
-                    checkLoginStatus();
-                } catch (error) {
-                    registerError.textContent = error.message;
-                    registerError.classList.remove('hidden');
-                }
-            });
-            
-            // --- DOCTOR & MOTHER DASHBOARD LOGIC ---
-            const fetchPatients = async (token) => {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/api/doctor/patients`, {
-                        headers: { 'x-auth-token': token }
-                    });
-                    if (!response.ok) throw new Error('Failed to fetch patients');
-                    const patients = await response.json();
-                    displayPatients(patients);
-                } catch (error) {
-                    patientsListDiv.innerHTML = `<p class="text-red-500">${error.message}</p>`;
-                }
-            };
+        const fetchAndDisplayMessages = async () => {
+            const token = localStorage.getItem('matru-care-token');
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/doctor/patients`, {
+                    headers: { 'x-auth-token': token }
+                });
+                if (!response.ok) throw new Error('Failed to fetch patients for messaging.');
+                const patients = await response.json();
 
-            const displayPatients = (patients) => {
-                patientsListDiv.innerHTML = '';
+                messageList.innerHTML = '';
                 if (patients.length === 0) {
-                    patientsListDiv.innerHTML = '<p class="text-gray-500">You have no assigned patients.</p>';
+                    messageList.innerHTML = '<p class="text-gray-500">You have no patients to message.</p>';
                     return;
                 }
+
                 patients.forEach(patient => {
-                    const patientCard = document.createElement('div');
-                    patientCard.className = 'bg-white p-4 rounded-lg shadow-md flex items-center justify-between';
-                    patientCard.setAttribute('data-patient-id', patient.userId);
-                    patientCard.innerHTML = `
+                    const messageCard = document.createElement('div');
+                    messageCard.className = 'bg-white p-4 rounded-lg shadow-md flex items-center justify-between cursor-pointer hover:bg-gray-50';
+                    messageCard.innerHTML = `
                         <div class="flex items-center">
-                            <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-4">
-                                <span class="text-xl font-bold doctor-primary">${patient.name.charAt(0)}</span>
+                            <div class="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center mr-4">
+                                <span class="text-xl font-bold matru-pink">${patient.name.charAt(0)}</span>
                             </div>
                             <div>
                                 <p class="font-bold text-gray-800">${patient.name}</p>
-                                <p class="text-sm text-gray-500">${patient.email}</p>
+                                <p class="text-sm text-gray-500">Click to open chat</p>
                             </div>
                         </div>
-                        <div class="flex space-x-2 relative">
-                            <button title="Chat" class="chat-btn p-2 rounded-full hover:bg-gray-200 transition">
-                                <i class="fas fa-comment-dots text-gray-600"></i>
-                            </button>
-                            <button title="Video Call" class="p-2 rounded-full hover:bg-gray-200 transition">
-                                <i class="fas fa-video text-gray-600"></i>
-                            </button>
+                        <div class="text-xs text-gray-400">
+                            <i class="fas fa-arrow-right"></i>
                         </div>
                     `;
-                    patientCard.querySelector('.chat-btn').addEventListener('click', () => {
+                    messageCard.addEventListener('click', () => {
                         openChat({ id: patient.userId, name: patient.name });
+                        switchTab('patients');
                     });
-                    patientsListDiv.appendChild(patientCard);
+                    messageList.appendChild(messageCard);
                 });
-            };
-
-            const fetchAndDisplayMessages = async () => {
-                const token = localStorage.getItem('matru-care-token');
-                try {
-                    // FIX: Use the existing patients endpoint instead of a non-existent 'all chats' endpoint.
-                    const response = await fetch(`${API_BASE_URL}/api/doctor/patients`, {
-                        headers: { 'x-auth-token': token }
-                    });
-                    if (!response.ok) throw new Error('Failed to fetch patients for messaging.');
-                    const patients = await response.json();
-
-                    messageList.innerHTML = '';
-                    if (patients.length === 0) {
-                        messageList.innerHTML = '<p class="text-gray-500">You have no patients to message.</p>';
-                        return;
-                    }
-
-                    patients.forEach(patient => {
-                        const messageCard = document.createElement('div');
-                        messageCard.className = 'bg-white p-4 rounded-lg shadow-md flex items-center justify-between cursor-pointer hover:bg-gray-50';
-                        messageCard.innerHTML = `
-                             <div class="flex items-center">
-                                <div class="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center mr-4">
-                                    <span class="text-xl font-bold matru-pink">${patient.name.charAt(0)}</span>
-                                </div>
-                                <div>
-                                    <p class="font-bold text-gray-800">${patient.name}</p>
-                                    <p class="text-sm text-gray-500">Click to open chat</p>
-                                </div>
-                            </div>
-                            <div class="text-xs text-gray-400">
-                                <i class="fas fa-arrow-right"></i>
-                            </div>
-                        `;
-                        messageCard.addEventListener('click', () => {
-                            openChat({ id: patient.userId, name: patient.name });
-                            switchTab('patients'); // Switch back to patients view to see the chat modal logically placed
-                        });
-                        messageList.appendChild(messageCard);
-                    });
-
-
-                } catch (error) {
-                    messageList.innerHTML = `<p class="text-red-500">${error.message}</p>`;
-                }
-            };
-            
-            motherChatButton.addEventListener('click', async () => {
-                const token = localStorage.getItem('matru-care-token');
-                try {
-                    const response = await fetch(`${API_BASE_URL}/api/mother/doctor`, {
-                        headers: { 'x-auth-token': token }
-                    });
-                    if (!response.ok) throw new Error('Could not find assigned doctor.');
-                    const doctor = await response.json();
-                    openChat({ id: doctor.userId, name: `Dr. ${doctor.name}` });
-                } catch (error) {
-                    alert(error.message);
-                }
-            });
-
-            const switchTab = (activeTab) => {
-                [tabPatients, tabAppointments, tabMessages].forEach(tab => {
-                    tab.classList.remove('border-blue-500', 'text-blue-600');
-                    tab.classList.add('border-transparent', 'text-gray-500');
+            } catch (error) {
+                messageList.innerHTML = `<p class="text-red-500">${error.message}</p>`;
+            }
+        };
+        
+        motherChatButton.addEventListener('click', async () => {
+            const token = localStorage.getItem('matru-care-token');
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/mother/doctor`, {
+                    headers: { 'x-auth-token': token }
                 });
-                [patientsContent, appointmentsContent, messagesContent, doctorDetailsContent].forEach(content => content.classList.add('hidden'));
-
-                if (activeTab === 'patients') {
-                    tabPatients.classList.add('border-blue-500', 'text-blue-600');
-                    patientsContent.classList.remove('hidden');
-                } else if (activeTab === 'appointments') {
-                    tabAppointments.classList.add('border-blue-500', 'text-blue-600');
-                    appointmentsContent.classList.remove('hidden');
-                } else if (activeTab === 'messages') {
-                    tabMessages.classList.add('border-blue-500', 'text-blue-600');
-                    messagesContent.classList.remove('hidden');
-                    messagesNotificationBadge.classList.add('hidden');
-                    fetchAndDisplayMessages();
-                } else if (activeTab === 'details') {
-                    doctorDetailsContent.classList.remove('hidden');
-                }
-            };
-
-            // --- EVENT LISTENERS ---
-            logoutButton.addEventListener('click', handleLogout);
-            doctorLogoutButton.addEventListener('click', handleLogout);
-            showRegisterLink.addEventListener('click', (e) => { e.preventDefault(); loginFormContainer.classList.add('hidden'); registerFormContainer.classList.remove('hidden'); });
-            showLoginLink.addEventListener('click', (e) => { e.preventDefault(); registerFormContainer.classList.add('hidden'); loginFormContainer.classList.remove('hidden'); });
-            profileButton.addEventListener('click', (e) => { e.stopPropagation(); profileDropdown.classList.toggle('hidden'); });
-            doctorProfileButton.addEventListener('click', (e) => { e.stopPropagation(); doctorProfileDropdown.classList.toggle('hidden'); });
-            document.addEventListener('click', () => {
-                if (!profileDropdown.classList.contains('hidden')) profileDropdown.classList.add('hidden');
-                if (!doctorProfileDropdown.classList.contains('hidden')) doctorProfileDropdown.classList.add('hidden');
-            });
-            tabPatients.addEventListener('click', () => switchTab('patients'));
-            tabAppointments.addEventListener('click', () => switchTab('appointments'));
-            tabMessages.addEventListener('click', () => switchTab('messages'));
-            updateProfileLink.addEventListener('click', (e) => { e.preventDefault(); switchTab('details'); doctorProfileDropdown.classList.add('hidden'); });
-
-            // --- INITIALIZATION ---
-            checkLoginStatus();
+                if (!response.ok) throw new Error('Could not find assigned doctor.');
+                const doctor = await response.json();
+                openChat({ id: doctor.userId, name: `Dr. ${doctor.name}` });
+            } catch (error) {
+                alert(error.message);
+            }
         });
-    </script>
+
+        const switchTab = (activeTab) => {
+            [tabPatients, tabAppointments, tabMessages].forEach(tab => {
+                tab.classList.remove('border-blue-500', 'text-blue-600');
+                tab.classList.add('border-transparent', 'text-gray-500');
+            });
+            [patientsContent, appointmentsContent, messagesContent, doctorDetailsContent].forEach(content => content.classList.add('hidden'));
+
+            if (activeTab === 'patients') {
+                tabPatients.classList.add('border-blue-500', 'text-blue-600');
+                patientsContent.classList.remove('hidden');
+            } else if (activeTab === 'appointments') {
+                tabAppointments.classList.add('border-blue-500', 'text-blue-600');
+                appointmentsContent.classList.remove('hidden');
+            } else if (activeTab === 'messages') {
+                tabMessages.classList.add('border-blue-500', 'text-blue-600');
+                messagesContent.classList.remove('hidden');
+                messagesNotificationBadge.classList.add('hidden');
+                fetchAndDisplayMessages();
+            } else if (activeTab === 'details') {
+                doctorDetailsContent.classList.remove('hidden');
+            }
+        };
+
+        // --- EVENT LISTENERS ---
+        logoutButton.addEventListener('click', handleLogout);
+        doctorLogoutButton.addEventListener('click', handleLogout);
+        showRegisterLink.addEventListener('click', (e) => { e.preventDefault(); loginFormContainer.classList.add('hidden'); registerFormContainer.classList.remove('hidden'); });
+        showLoginLink.addEventListener('click', (e) => { e.preventDefault(); registerFormContainer.classList.add('hidden'); loginFormContainer.classList.remove('hidden'); });
+        profileButton.addEventListener('click', (e) => { e.stopPropagation(); profileDropdown.classList.toggle('hidden'); });
+        doctorProfileButton.addEventListener('click', (e) => { e.stopPropagation(); doctorProfileDropdown.classList.toggle('hidden'); });
+        document.addEventListener('click', () => {
+            if (!profileDropdown.classList.contains('hidden')) profileDropdown.classList.add('hidden');
+            if (!doctorProfileDropdown.classList.contains('hidden')) doctorProfileDropdown.classList.add('hidden');
+        });
+        tabPatients.addEventListener('click', () => switchTab('patients'));
+        tabAppointments.addEventListener('click', () => switchTab('appointments'));
+        tabMessages.addEventListener('click', () => switchTab('messages'));
+        updateProfileLink.addEventListener('click', (e) => { e.preventDefault(); switchTab('details'); doctorProfileDropdown.classList.add('hidden'); });
+
+        // --- INITIALIZATION ---
+        checkLoginStatus();
+    });
+</script>
 </body>
 </html>
-
