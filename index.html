@@ -37,6 +37,7 @@
             color: #1F2937; /* gray-800 */
             border-radius: 20px 20px 20px 5px;
         }
+        /* General notification badge (for tabs) */
         .notification-badge {
             background-color: #EF4444; /* red-500 */
             color: white;
@@ -52,6 +53,25 @@
             top: -5px;
             right: -5px;
         }
+        /* NEW: Badge for unread messages in the user list */
+        .unread-badge {
+            background-color: #EF4444; /* red-500 */
+            color: white;
+            border-radius: 9999px; /* pill shape */
+            min-width: 24px;
+            height: 24px;
+            padding: 0 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        /* Custom class for active chat user */
+        .active-chat {
+            background-color: #EFF6FF; /* blue-50 */
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -62,7 +82,7 @@
                 <img src="matrucare_logo.jpg" alt="Matru Care Logo" class="h-12 w-auto">
                 <div class="relative">
                     <button id="profile-button" class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
-                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="ब0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                     </button>
                     <div id="profile-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-xl z-50 py-1">
                         <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Update Profile</a>
@@ -118,9 +138,38 @@
                  <div class="bg-white p-8 rounded-lg shadow text-center"><p class="text-gray-500">Appointments feature coming soon.</p></div>
             </div>
              <div id="messages-content" class="hidden">
-                <h3 class="text-2xl font-semibold text-gray-700 mb-4">Messages</h3>
-                <div id="message-list" class="space-y-4">
-                    <!-- Messages will be dynamically loaded here -->
+                <div class="bg-white rounded-lg shadow-md overflow-hidden flex" style="height: calc(100vh - 250px);">
+                    <div id="chat-sidebar" class="w-1/3 border-r border-gray-200 overflow-y-auto">
+                        <div class="p-4 border-b">
+                            <h3 class="text-lg font-semibold text-gray-700">Conversations</h3>
+                        </div>
+                        <div id="chat-user-list">
+                            </div>
+                    </div>
+
+                    <div id="chat-main" class="w-2/3 flex flex-col">
+                        <div id="chat-default-view" class="flex-1 flex flex-col items-center justify-center text-center text-gray-500">
+                             <i class="fas fa-comments fa-4x text-gray-300 mb-4"></i>
+                            <h4 class="text-xl font-semibold">Select a conversation</h4>
+                            <p>Choose a patient from the list to start chatting.</p>
+                        </div>
+
+                        <div id="chat-active-view" class="hidden h-full flex flex-col">
+                            <header class="p-4 border-b flex justify-between items-center bg-gray-50">
+                                <h3 class="text-xl font-bold text-gray-800">Chat with <span id="chat-partner-name"></span></h3>
+                            </header>
+                            <div id="chat-messages" class="flex-1 p-4 overflow-y-auto flex flex-col space-y-2">
+                                </div>
+                            <footer class="p-4 border-t bg-gray-50">
+                                <form id="chat-form" class="flex space-x-2">
+                                    <input type="text" id="chat-input" placeholder="Type a message..." class="flex-1 px-4 py-2 bg-gray-200 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                    <button type="submit" class="doctor-primary-bg text-white font-bold p-3 rounded-full doctor-primary-hover transition-colors flex items-center justify-center">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </form>
+                            </footer>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div id="doctor-details-content" class="hidden">
@@ -177,17 +226,17 @@
         </div>
     </section>
 
-    <div id="chat-modal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
+    <div id="mother-chat-modal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
         <div class="bg-white rounded-lg shadow-2xl w-full max-w-lg h-[90vh] flex flex-col">
             <header class="p-4 border-b flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gray-800">Chat with <span id="chat-partner-name"></span></h3>
-                <button id="close-chat-button" class="text-gray-500 hover:text-gray-800 text-2xl leading-none">&times;</button>
+                <h3 class="text-xl font-bold text-gray-800">Chat with <span id="mother-chat-partner-name"></span></h3>
+                <button id="mother-close-chat-button" class="text-gray-500 hover:text-gray-800 text-2xl leading-none">&times;</button>
             </header>
-            <div id="chat-messages" class="flex-1 p-4 overflow-y-auto flex flex-col space-y-2">
+            <div id="mother-chat-messages" class="flex-1 p-4 overflow-y-auto flex flex-col space-y-2">
                 </div>
             <footer class="p-4 border-t">
-                <form id="chat-form" class="flex space-x-2">
-                    <input type="text" id="chat-input" placeholder="Type a message..." class="flex-1 px-4 py-2 bg-gray-100 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400">
+                <form id="mother-chat-form" class="flex space-x-2">
+                    <input type="text" id="mother-chat-input" placeholder="Type a message..." class="flex-1 px-4 py-2 bg-gray-100 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400">
                     <button type="submit" class="doctor-primary-bg text-white font-bold py-2 px-4 rounded-full doctor-primary-hover transition-colors">Send</button>
                 </form>
             </footer>
@@ -227,19 +276,31 @@
             const patientsContent = document.getElementById('patients-content');
             const appointmentsContent = document.getElementById('appointments-content');
             const messagesContent = document.getElementById('messages-content');
-            const messageList = document.getElementById('message-list');
             const messagesNotificationBadge = document.getElementById('messages-notification-badge');
             const doctorDetailsContent = document.getElementById('doctor-details-content');
             
-            // --- Chat Elements ---
-            const chatModal = document.getElementById('chat-modal');
-            const closeChatButton = document.getElementById('close-chat-button');
+            // --- Doctor's Chat Elements ---
+            const chatUserList = document.getElementById('chat-user-list');
+            const chatDefaultView = document.getElementById('chat-default-view');
+            const chatActiveView = document.getElementById('chat-active-view');
             const chatPartnerName = document.getElementById('chat-partner-name');
             const chatMessagesDiv = document.getElementById('chat-messages');
             const chatForm = document.getElementById('chat-form');
             const chatInput = document.getElementById('chat-input');
-            const motherChatButton = document.getElementById('mother-chat-button');
             let currentChatPartner = null;
+            let lastMessageDate = null;
+
+            // --- Mother's Chat Modal Elements ---
+            const motherChatModal = document.getElementById('mother-chat-modal');
+            const motherCloseChatButton = document.getElementById('mother-close-chat-button');
+            const motherChatPartnerName = document.getElementById('mother-chat-partner-name');
+            const motherChatMessagesDiv = document.getElementById('mother-chat-messages');
+            const motherChatForm = document.getElementById('mother-chat-form');
+            const motherChatInput = document.getElementById('mother-chat-input');
+            const motherChatButton = document.getElementById('mother-chat-button');
+            let motherChatPartner = null;
+            let lastMotherMessageDate = null;
+
 
             // --- UI TOGGLE FUNCTIONS ---
             const showMotherApp = (userData) => {
@@ -263,6 +324,22 @@
                 registerFormContainer.classList.add('hidden');
             };
 
+            // --- HELPER FUNCTIONS ---
+            const getDatePart = (dateString) => new Date(dateString).toLocaleDateString();
+
+            const formatDateForSeparator = (dateString) => {
+                const date = new Date(dateString);
+                const today = new Date();
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+
+                if (date.toLocaleDateString() === today.toLocaleDateString()) return 'Today';
+                if (date.toLocaleDateString() === yesterday.toLocaleDateString()) return 'Yesterday';
+                return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            };
+            
+            const formatTime = (dateString) => new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
             // --- SOCKET.IO & CHAT LOGIC ---
             const connectSocket = (userId) => {
                 if (socket) socket.disconnect();
@@ -271,28 +348,34 @@
                     console.log('Socket connected:', socket.id);
                     socket.emit('join-room', userId);
                 });
-                socket.on('receive-chat-message', (data) => {
-                    if (chatModal.classList.contains('hidden') || data.sender !== currentChatPartner?.id) {
-                        // Show notification badge
-                        const patientCard = document.querySelector(`[data-patient-id="${data.sender}"]`);
-                        if(patientCard) {
-                            let badge = patientCard.querySelector('.notification-badge');
-                            if(!badge) {
-                                badge = document.createElement('span');
-                                badge.className = 'notification-badge';
-                                patientCard.querySelector('.chat-btn').parentElement.style.position = 'relative';
-                                patientCard.querySelector('.chat-btn').parentElement.appendChild(badge);
-                            }
-                            badge.textContent = (parseInt(badge.textContent) || 0) + 1;
-                            badge.classList.remove('hidden');
-                        }
-                        messagesNotificationBadge.classList.remove('hidden');
 
-                    } else {
-                        appendMessage(data.message, 'received');
+                socket.on('receive-chat-message', (data) => {
+                    const user = JSON.parse(localStorage.getItem('matru-care-user'));
+                    
+                    if (user.status === 'Doctor') {
+                        if (!currentChatPartner || data.sender !== currentChatPartner.id) {
+                            messagesNotificationBadge.classList.remove('hidden');
+                            const userCard = document.querySelector(`#chat-user-list [data-patient-id="${data.sender}"]`);
+                            if(userCard) {
+                                let badge = userCard.querySelector('.unread-badge');
+                                if(!badge) {
+                                    badge = document.createElement('span');
+                                    badge.className = 'unread-badge';
+                                    userCard.querySelector('.name-container').appendChild(badge);
+                                }
+                                badge.textContent = (parseInt(badge.textContent) || 0) + 1;
+                            }
+                        } else {
+                            processAndAppendMessage(data.message, 'received', data.timestamp, chatMessagesDiv, lastMessageDate, (newDate) => { lastMessageDate = newDate; });
+                        }
                     }
-                     if (messagesContent.offsetParent !== null) {
-                        fetchAndDisplayMessages();
+                    
+                    if (user.status === 'Mother') {
+                        if (motherChatModal.classList.contains('hidden')) {
+                           motherChatButton.classList.add('animate-pulse');
+                        } else {
+                             processAndAppendMessage(data.message, 'received', data.timestamp, motherChatMessagesDiv, lastMotherMessageDate, (newDate) => { lastMotherMessageDate = newDate; });
+                        }
                     }
                 });
             };
@@ -300,65 +383,91 @@
             const openChat = async (partner) => {
                 currentChatPartner = partner;
                 chatPartnerName.textContent = partner.name;
-                chatMessagesDiv.innerHTML = ''; // Clear previous messages
-                chatModal.classList.remove('hidden');
+                chatMessagesDiv.innerHTML = '';
+                lastMessageDate = null; // Reset date tracker
                 
-                // Hide notification badge when chat is opened
-                const patientCard = document.querySelector(`[data-patient-id="${partner.id}"]`);
-                if(patientCard){
-                    const badge = patientCard.querySelector('.notification-badge');
-                    if(badge) {
-                        badge.textContent = '';
-                        badge.classList.add('hidden');
-                    }
-                }
+                chatDefaultView.classList.add('hidden');
+                chatActiveView.classList.remove('hidden');
 
+                document.querySelectorAll('#chat-user-list > div').forEach(el => el.classList.remove('active-chat'));
+                const userCard = document.querySelector(`#chat-user-list [data-patient-id="${partner.id}"]`);
+                if (userCard) {
+                    userCard.classList.add('active-chat');
+                    const badge = userCard.querySelector('.unread-badge');
+                    if(badge) badge.remove(); // Remove badge on open
+                }
 
                 const token = localStorage.getItem('matru-care-token');
                 try {
-                    const response = await fetch(`${API_BASE_URL}/api/chat/history/${partner.id}`, {
-                        headers: { 'x-auth-token': token }
-                    });
+                    const response = await fetch(`${API_BASE_URL}/api/chat/history/${partner.id}`, { headers: { 'x-auth-token': token } });
                     const messages = await response.json();
                     const currentUser = JSON.parse(localStorage.getItem('matru-care-user'));
+                    
                     messages.forEach(msg => {
                         const type = msg.sender._id === currentUser.id ? 'sent' : 'received';
-                        appendMessage(msg.message, type);
+                        processAndAppendMessage(msg.message, type, msg.timestamp, chatMessagesDiv, lastMessageDate, (newDate) => { lastMessageDate = newDate; });
                     });
+
                 } catch (error) {
                     chatMessagesDiv.innerHTML = '<p class="text-red-500">Could not load chat history.</p>';
                 }
             };
-
-            const appendMessage = (message, type) => {
-                const bubbleClass = type === 'sent' ? 'chat-bubble-sent self-end' : 'chat-bubble-received self-start';
-                const messageEl = `<div class="max-w-xs md:max-w-md p-3 w-auto ${bubbleClass}">${message}</div>`;
-                chatMessagesDiv.insertAdjacentHTML('beforeend', messageEl);
-                chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+            
+            const appendDateSeparator = (timestamp, container) => {
+                const dateEl = document.createElement('div');
+                dateEl.className = 'self-center my-2 px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm shadow-sm';
+                dateEl.textContent = formatDateForSeparator(timestamp);
+                container.appendChild(dateEl);
             };
+
+            const appendMessageBubble = (message, type, timestamp, container) => {
+                const bubbleClass = type === 'sent' ? 'chat-bubble-sent self-end' : 'chat-bubble-received self-start';
+                const messageEl = document.createElement('div');
+                messageEl.className = `max-w-xs md:max-w-md p-3 w-auto ${bubbleClass} flex items-end space-x-2`;
+                
+                const messageText = document.createElement('p');
+                messageText.className = 'break-words';
+                messageText.textContent = message;
+                
+                const timeText = document.createElement('span');
+                timeText.className = 'text-xs opacity-70 flex-shrink-0';
+                timeText.textContent = formatTime(timestamp);
+
+                messageEl.appendChild(messageText);
+                messageEl.appendChild(timeText);
+
+                container.appendChild(messageEl);
+                container.scrollTop = container.scrollHeight;
+            };
+
+            const processAndAppendMessage = (message, type, timestamp, container, lastDate, updateLastDate) => {
+                const currentMessageDate = getDatePart(timestamp);
+                if (currentMessageDate !== lastDate) {
+                    appendDateSeparator(timestamp, container);
+                    updateLastDate(currentMessageDate);
+                }
+                appendMessageBubble(message, type, timestamp, container);
+            };
+
 
             chatForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 const message = chatInput.value.trim();
                 if (message && currentChatPartner) {
                     const token = localStorage.getItem('matru-care-token');
+                    const timestamp = new Date().toISOString();
                     fetch(`${API_BASE_URL}/api/chat/send`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
                         body: JSON.stringify({ receiverId: currentChatPartner.id, message }),
                     });
-                    appendMessage(message, 'sent');
+                    processAndAppendMessage(message, 'sent', timestamp, chatMessagesDiv, lastMessageDate, (newDate) => { lastMessageDate = newDate; });
                     chatInput.value = '';
                 }
             });
 
-            closeChatButton.addEventListener('click', () => {
-                chatModal.classList.add('hidden');
-                currentChatPartner = null;
-            });
-
-            // --- AUTHENTICATION LOGIC ---
-            const checkLoginStatus = () => {
+            // --- AUTHENTICATION LOGIC (unchanged) ---
+             const checkLoginStatus = () => {
                 const token = localStorage.getItem('matru-care-token');
                 const user = JSON.parse(localStorage.getItem('matru-care-user'));
                 if (token && user) {
@@ -377,6 +486,10 @@
                 if (socket) socket.disconnect();
                 localStorage.removeItem('matru-care-token');
                 localStorage.removeItem('matru-care-user');
+                currentChatPartner = null;
+                lastMessageDate = null;
+                chatActiveView.classList.add('hidden');
+                chatDefaultView.classList.remove('hidden');
                 showForms();
             };
 
@@ -426,7 +539,7 @@
                 }
             });
             
-            // --- DOCTOR & MOTHER DASHBOARD LOGIC ---
+            // --- DOCTOR & MOTHER DASHBOARD LOGIC (unchanged) ---
             const fetchPatients = async (token) => {
                 try {
                     const response = await fetch(`${API_BASE_URL}/api/doctor/patients`, {
@@ -470,72 +583,104 @@
                         </div>
                     `;
                     patientCard.querySelector('.chat-btn').addEventListener('click', () => {
+                        switchTab('messages');
                         openChat({ id: patient.userId, name: patient.name });
                     });
                     patientsListDiv.appendChild(patientCard);
                 });
             };
 
-            const fetchAndDisplayMessages = async () => {
+            const fetchAndDisplayChatUsers = async () => {
                 const token = localStorage.getItem('matru-care-token');
                 try {
-                    // FIX: Use the existing patients endpoint instead of a non-existent 'all chats' endpoint.
                     const response = await fetch(`${API_BASE_URL}/api/doctor/patients`, {
                         headers: { 'x-auth-token': token }
                     });
                     if (!response.ok) throw new Error('Failed to fetch patients for messaging.');
                     const patients = await response.json();
 
-                    messageList.innerHTML = '';
+                    chatUserList.innerHTML = '';
                     if (patients.length === 0) {
-                        messageList.innerHTML = '<p class="text-gray-500">You have no patients to message.</p>';
+                        chatUserList.innerHTML = '<p class="text-gray-500 p-4">You have no patients to message.</p>';
                         return;
                     }
 
                     patients.forEach(patient => {
-                        const messageCard = document.createElement('div');
-                        messageCard.className = 'bg-white p-4 rounded-lg shadow-md flex items-center justify-between cursor-pointer hover:bg-gray-50';
-                        messageCard.innerHTML = `
-                             <div class="flex items-center">
-                                <div class="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center mr-4">
-                                    <span class="text-xl font-bold matru-pink">${patient.name.charAt(0)}</span>
-                                </div>
-                                <div>
-                                    <p class="font-bold text-gray-800">${patient.name}</p>
-                                    <p class="text-sm text-gray-500">Click to open chat</p>
-                                </div>
+                        const userCard = document.createElement('div');
+                        userCard.className = 'p-4 border-b border-gray-200 flex items-center cursor-pointer hover:bg-gray-50';
+                        userCard.setAttribute('data-patient-id', patient.userId);
+                        // UPDATED HTML structure for the user card
+                        userCard.innerHTML = `
+                             <div class="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center mr-4 flex-shrink-0">
+                                <span class="text-xl font-bold matru-pink">${patient.name.charAt(0)}</span>
                             </div>
-                            <div class="text-xs text-gray-400">
-                                <i class="fas fa-arrow-right"></i>
+                            <div class="flex-grow">
+                                <div class="flex items-center justify-between">
+                                     <div class="name-container flex items-center space-x-2">
+                                        <p class="font-bold text-gray-800">${patient.name}</p>
+                                        </div>
+                                </div>
+                                <p class="text-sm text-gray-500 truncate">Click to open chat</p>
                             </div>
                         `;
-                        messageCard.addEventListener('click', () => {
+                        userCard.addEventListener('click', () => {
                             openChat({ id: patient.userId, name: patient.name });
-                            switchTab('patients'); // Switch back to patients view to see the chat modal logically placed
                         });
-                        messageList.appendChild(messageCard);
+                        chatUserList.appendChild(userCard);
                     });
 
-
                 } catch (error) {
-                    messageList.innerHTML = `<p class="text-red-500">${error.message}</p>`;
+                    chatUserList.innerHTML = `<p class="text-red-500 p-4">${error.message}</p>`;
                 }
             };
             
+            // --- Mother's Chat Functions ---
             motherChatButton.addEventListener('click', async () => {
                 const token = localStorage.getItem('matru-care-token');
                 try {
-                    const response = await fetch(`${API_BASE_URL}/api/mother/doctor`, {
-                        headers: { 'x-auth-token': token }
-                    });
+                    const response = await fetch(`${API_BASE_URL}/api/mother/doctor`, { headers: { 'x-auth-token': token } });
                     if (!response.ok) throw new Error('Could not find assigned doctor.');
                     const doctor = await response.json();
-                    openChat({ id: doctor.userId, name: `Dr. ${doctor.name}` });
+                    motherChatPartner = { id: doctor.userId, name: `Dr. ${doctor.name}` };
+                    
+                    motherChatModal.classList.remove('hidden');
+                    motherChatPartnerName.textContent = motherChatPartner.name;
+                    motherChatMessagesDiv.innerHTML = '';
+                    motherChatButton.classList.remove('animate-pulse');
+                    lastMotherMessageDate = null; // Reset date tracker
+
+                    // Fetch history
+                    const historyResponse = await fetch(`${API_BASE_URL}/api/chat/history/${doctor.userId}`, { headers: { 'x-auth-token': token } });
+                    const messages = await historyResponse.json();
+                    const currentUser = JSON.parse(localStorage.getItem('matru-care-user'));
+                    messages.forEach(msg => {
+                        const type = msg.sender._id === currentUser.id ? 'sent' : 'received';
+                        processAndAppendMessage(msg.message, type, msg.timestamp, motherChatMessagesDiv, lastMotherMessageDate, (newDate) => { lastMotherMessageDate = newDate; });
+                    });
+
                 } catch (error) {
                     alert(error.message);
                 }
             });
 
+            motherChatForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const message = motherChatInput.value.trim();
+                if (message && motherChatPartner) {
+                    const token = localStorage.getItem('matru-care-token');
+                    const timestamp = new Date().toISOString();
+                    fetch(`${API_BASE_URL}/api/chat/send`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+                        body: JSON.stringify({ receiverId: motherChatPartner.id, message }),
+                    });
+                    processAndAppendMessage(message, 'sent', timestamp, motherChatMessagesDiv, lastMotherMessageDate, (newDate) => { lastMotherMessageDate = newDate; });
+                    motherChatInput.value = '';
+                }
+            });
+            motherCloseChatButton.addEventListener('click', () => motherChatModal.classList.add('hidden'));
+
+            // --- Tab Switching Logic (unchanged) ---
             const switchTab = (activeTab) => {
                 [tabPatients, tabAppointments, tabMessages].forEach(tab => {
                     tab.classList.remove('border-blue-500', 'text-blue-600');
@@ -553,13 +698,13 @@
                     tabMessages.classList.add('border-blue-500', 'text-blue-600');
                     messagesContent.classList.remove('hidden');
                     messagesNotificationBadge.classList.add('hidden');
-                    fetchAndDisplayMessages();
+                    fetchAndDisplayChatUsers();
                 } else if (activeTab === 'details') {
                     doctorDetailsContent.classList.remove('hidden');
                 }
             };
 
-            // --- EVENT LISTENERS ---
+            // --- EVENT LISTENERS (unchanged) ---
             logoutButton.addEventListener('click', handleLogout);
             doctorLogoutButton.addEventListener('click', handleLogout);
             showRegisterLink.addEventListener('click', (e) => { e.preventDefault(); loginFormContainer.classList.add('hidden'); registerFormContainer.classList.remove('hidden'); });
