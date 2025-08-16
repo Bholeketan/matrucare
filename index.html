@@ -117,10 +117,35 @@
                  <h3 class="text-2xl font-semibold text-gray-700 mb-4">Upcoming Appointments</h3>
                  <div class="bg-white p-8 rounded-lg shadow text-center"><p class="text-gray-500">Appointments feature coming soon.</p></div>
             </div>
-             <div id="messages-content" class="hidden">
-                <h3 class="text-2xl font-semibold text-gray-700 mb-4">Messages</h3>
-                <div id="message-list" class="space-y-4">
-                    <!-- Messages will be dynamically loaded here -->
+            <div id="messages-content" class="hidden">
+                <div class="flex border rounded-lg shadow-md bg-white h-[calc(100vh-220px)]">
+                    <div class="w-full md:w-1/3 border-r border-gray-200 overflow-y-auto">
+                        <div class="p-4 border-b">
+                            <h3 class="text-xl font-semibold text-gray-700">Conversations</h3>
+                        </div>
+                        <div id="conversation-list" class="space-y-1 p-2">
+                        </div>
+                    </div>
+                    <div id="chat-view" class="hidden md:flex w-2/3 flex-col">
+                        <div id="chat-placeholder" class="flex flex-col items-center justify-center h-full text-center text-gray-500">
+                            <i class="fas fa-comments text-5xl mb-4"></i>
+                            <h3 class="text-xl font-semibold">Select a conversation</h3>
+                            <p>Choose a patient from the list to start chatting.</p>
+                        </div>
+                        <div id="chat-interface" class="hidden flex flex-col h-full">
+                            <header class="p-4 border-b flex justify-between items-center bg-gray-50">
+                                <h3 class="text-xl font-bold text-gray-800">Chat with <span id="chat-partner-name-view"></span></h3>
+                            </header>
+                            <div id="chat-messages-view" class="flex-1 p-4 overflow-y-auto flex flex-col space-y-2 bg-gray-100">
+                            </div>
+                            <footer class="p-4 border-t bg-white">
+                                <form id="chat-form-view" class="flex space-x-2">
+                                    <input type="text" id="chat-input-view" placeholder="Type a message..." class="flex-1 px-4 py-2 bg-gray-100 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                    <button type="submit" class="doctor-primary-bg text-white font-bold py-2 px-4 rounded-full doctor-primary-hover transition-colors">Send</button>
+                                </form>
+                            </footer>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div id="doctor-details-content" class="hidden">
@@ -150,6 +175,7 @@
                     </div>
                     <div class="mb-6">
                         <label for="login-password" class="block text-sm font-medium text-gray-600 mb-1">Password</label>
+
                         <input type="password" id="login-password" class="w-full px-4 py-2 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400" required>
                     </div>
                     <button type="submit" class="w-full matru-orange text-white font-bold py-3 px-4 rounded-lg matru-orange-hover transition-colors">Log In</button>
@@ -166,6 +192,7 @@
                     <div>
                         <label for="register-status" class="block text-sm font-medium text-gray-600 mb-1">I am a...</label>
                         <select id="register-status" class="w-full px-4 py-2 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400">
+                            <option value="Mother">Mother</option>
                             <option value="Doctor">Doctor</option>
                         </select>
                     </div>
@@ -183,7 +210,7 @@
                 <button id="close-chat-button" class="text-gray-500 hover:text-gray-800 text-2xl leading-none">&times;</button>
             </header>
             <div id="chat-messages" class="flex-1 p-4 overflow-y-auto flex flex-col space-y-2">
-                </div>
+            </div>
             <footer class="p-4 border-t">
                 <form id="chat-form" class="flex space-x-2">
                     <input type="text" id="chat-input" placeholder="Type a message..." class="flex-1 px-4 py-2 bg-gray-100 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400">
@@ -194,407 +221,537 @@
     </div>
 
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const API_BASE_URL = 'https://matru-care-backend.onrender.com';
-        let socket;
+        /**
+         * =================================================================
+         * Matru Care Frontend Application
+         * =================================================================
+         * This script is organized into a single App object to encapsulate
+         * all functionality, preventing global scope pollution and
+         * improving maintainability.
+         */
+        document.addEventListener('DOMContentLoaded', () => {
+            const App = {
+                // Application Configuration
+                config: {
+                    API_BASE_URL: 'https://matru-care-backend.onrender.com',
+                },
 
-        // --- Element Selectors ---
-        const mainApp = document.getElementById('main-app');
-        const doctorDashboard = document.getElementById('doctor-dashboard');
-        const formsSection = document.getElementById('forms-section');
-        const loginFormContainer = document.getElementById('login-form-container');
-        const registerFormContainer = document.getElementById('register-form-container');
-        const loginForm = document.getElementById('login-form');
-        const registerForm = document.getElementById('register-form');
-        const loginError = document.getElementById('login-error');
-        const registerError = document.getElementById('register-error');
-        const showRegisterLink = document.getElementById('show-register');
-        const showLoginLink = document.getElementById('show-login');
-        const logoutButton = document.getElementById('logout-button');
-        const doctorLogoutButton = document.getElementById('doctor-logout-button');
-        const profileButton = document.getElementById('profile-button');
-        const profileDropdown = document.getElementById('profile-dropdown');
-        const doctorProfileButton = document.getElementById('doctor-profile-button');
-        const doctorProfileDropdown = document.getElementById('doctor-profile-dropdown');
-        const updateProfileLink = document.getElementById('update-profile-link');
-        const doctorNameSpan = document.getElementById('doctor-name');
-        const motherNameSpan = document.getElementById('mother-name');
-        const patientsListDiv = document.getElementById('patients-list');
-        const tabPatients = document.getElementById('tab-patients');
-        const tabAppointments = document.getElementById('tab-appointments');
-        const tabMessages = document.getElementById('tab-messages');
-        const patientsContent = document.getElementById('patients-content');
-        const appointmentsContent = document.getElementById('appointments-content');
-        const messagesContent = document.getElementById('messages-content');
-        const messageList = document.getElementById('message-list');
-        const messagesNotificationBadge = document.getElementById('messages-notification-badge');
-        const doctorDetailsContent = document.getElementById('doctor-details-content');
+                // Centralized State Management
+                state: {
+                    token: null,
+                    currentUser: null,
+                    socket: null,
+                    currentChatPartner: null,
+                },
 
-        // --- Chat Elements ---
-        const chatModal = document.getElementById('chat-modal');
-        const closeChatButton = document.getElementById('close-chat-button');
-        const chatPartnerName = document.getElementById('chat-partner-name');
-        const chatMessagesDiv = document.getElementById('chat-messages');
-        const chatForm = document.getElementById('chat-form');
-        const chatInput = document.getElementById('chat-input');
-        const motherChatButton = document.getElementById('mother-chat-button');
-        let currentChatPartner = null;
+                // Cached DOM Elements
+                elements: {},
 
-        // --- UI TOGGLE FUNCTIONS ---
-        const showMotherApp = (userData) => {
-            mainApp.classList.remove('hidden');
-            doctorDashboard.classList.add('hidden');
-            formsSection.classList.add('hidden');
-            motherNameSpan.textContent = userData.name;
-        };
-        const showDoctorApp = (userData) => {
-            mainApp.classList.add('hidden');
-            doctorDashboard.classList.remove('hidden');
-            formsSection.classList.add('hidden');
-            doctorNameSpan.textContent = userData.name;
-            fetchPatients(userData.token);
-        };
-        const showForms = () => {
-            mainApp.classList.add('hidden');
-            doctorDashboard.classList.add('hidden');
-            formsSection.classList.remove('hidden');
-            loginFormContainer.classList.remove('hidden');
-            registerFormContainer.classList.add('hidden');
-        };
+                /**
+                 * =================================================================
+                 * INITIALIZATION
+                 * =================================================================
+                 */
+                init() {
+                    this.cacheElements();
+                    this.bindEvents();
+                    this.Auth.checkLoginStatus();
+                },
 
-        // --- SOCKET.IO & CHAT LOGIC ---
-        // REVISED: This function now handles all socket connections and events
-        const setupSocketConnection = (user) => {
-            if (socket) {
-                socket.disconnect();
-            }
+                cacheElements() {
+                    this.elements.mainApp = document.getElementById('main-app');
+                    this.elements.doctorDashboard = document.getElementById('doctor-dashboard');
+                    this.elements.formsSection = document.getElementById('forms-section');
+                    this.elements.loginFormContainer = document.getElementById('login-form-container');
+                    this.elements.registerFormContainer = document.getElementById('register-form-container');
+                    this.elements.loginForm = document.getElementById('login-form');
+                    this.elements.registerForm = document.getElementById('register-form');
+                    this.elements.loginError = document.getElementById('login-error');
+                    this.elements.registerError = document.getElementById('register-error');
+                    this.elements.showRegisterLink = document.getElementById('show-register');
+                    this.elements.showLoginLink = document.getElementById('show-login');
+                    this.elements.logoutButton = document.getElementById('logout-button');
+                    this.elements.doctorLogoutButton = document.getElementById('doctor-logout-button');
+                    this.elements.profileButton = document.getElementById('profile-button');
+                    this.elements.profileDropdown = document.getElementById('profile-dropdown');
+                    this.elements.doctorProfileButton = document.getElementById('doctor-profile-button');
+                    this.elements.doctorProfileDropdown = document.getElementById('doctor-profile-dropdown');
+                    this.elements.updateProfileLink = document.getElementById('update-profile-link');
+                    this.elements.doctorNameSpan = document.getElementById('doctor-name');
+                    this.elements.motherNameSpan = document.getElementById('mother-name');
+                    this.elements.patientsListDiv = document.getElementById('patients-list');
+                    this.elements.tabPatients = document.getElementById('tab-patients');
+                    this.elements.tabAppointments = document.getElementById('tab-appointments');
+                    this.elements.tabMessages = document.getElementById('tab-messages');
+                    this.elements.patientsContent = document.getElementById('patients-content');
+                    this.elements.appointmentsContent = document.getElementById('appointments-content');
+                    this.elements.messagesContent = document.getElementById('messages-content');
+                    this.elements.messagesNotificationBadge = document.getElementById('messages-notification-badge');
+                    this.elements.doctorDetailsContent = document.getElementById('doctor-details-content');
+                    this.elements.chatModal = document.getElementById('chat-modal');
+                    this.elements.closeChatButton = document.getElementById('close-chat-button');
+                    this.elements.chatPartnerName = document.getElementById('chat-partner-name');
+                    this.elements.chatMessagesDiv = document.getElementById('chat-messages');
+                    this.elements.chatForm = document.getElementById('chat-form');
+                    this.elements.chatInput = document.getElementById('chat-input');
+                    this.elements.motherChatButton = document.getElementById('mother-chat-button');
+                    this.elements.conversationList = document.getElementById('conversation-list');
+                    this.elements.chatPlaceholder = document.getElementById('chat-placeholder');
+                    this.elements.chatInterface = document.getElementById('chat-interface');
+                    this.elements.chatPartnerNameView = document.getElementById('chat-partner-name-view');
+                    this.elements.chatMessagesView = document.getElementById('chat-messages-view');
+                    this.elements.chatFormView = document.getElementById('chat-form-view');
+                    this.elements.chatInputView = document.getElementById('chat-input-view');
+                },
 
-            socket = io(API_BASE_URL, {
-                // You can optionally send the token for authentication with socket middleware
-                auth: { token: localStorage.getItem('matru-care-token') }
-            });
+                bindEvents() {
+                    // Auth
+                    this.elements.loginForm.addEventListener('submit', (e) => this.Auth.handleLogin(e));
+                    this.elements.registerForm.addEventListener('submit', (e) => this.Auth.handleRegister(e));
+                    this.elements.logoutButton.addEventListener('click', () => this.Auth.logout());
+                    this.elements.doctorLogoutButton.addEventListener('click', () => this.Auth.logout());
+                    this.elements.showRegisterLink.addEventListener('click', (e) => { e.preventDefault(); this.UI.showAuthForm('register'); });
+                    this.elements.showLoginLink.addEventListener('click', (e) => { e.preventDefault(); this.UI.showAuthForm('login'); });
+                    
+                    // Dropdowns
+                    this.elements.profileButton.addEventListener('click', (e) => { e.stopPropagation(); this.UI.toggleDropdown(this.elements.profileDropdown); });
+                    this.elements.doctorProfileButton.addEventListener('click', (e) => { e.stopPropagation(); this.UI.toggleDropdown(this.elements.doctorProfileDropdown); });
+                    document.addEventListener('click', () => this.UI.closeAllDropdowns());
+                    
+                    // Navigation
+                    this.elements.tabPatients.addEventListener('click', () => this.UI.switchTab('patients'));
+                    this.elements.tabAppointments.addEventListener('click', () => this.UI.switchTab('appointments'));
+                    this.elements.tabMessages.addEventListener('click', () => this.UI.switchTab('messages'));
+                    this.elements.updateProfileLink.addEventListener('click', (e) => { e.preventDefault(); this.UI.switchTab('details'); });
 
-            socket.on('connect', () => {
-                console.log('Socket connected successfully:', socket.id);
-                // Join the user-specific room to receive targeted events
-                socket.emit('join-room', user.id);
-            });
+                    // Chat
+                    this.elements.motherChatButton.addEventListener('click', () => this.Chat.openForMother());
+                    this.elements.closeChatButton.addEventListener('click', () => this.UI.closeChatModal());
+                    this.elements.chatForm.addEventListener('submit', (e) => this.Chat.handleSendMessage(e, this.elements.chatInput, this.elements.chatMessagesDiv));
+                    this.elements.chatFormView.addEventListener('submit', (e) => this.Chat.handleSendMessage(e, this.elements.chatInputView, this.elements.chatMessagesView));
+                },
 
-            socket.on('disconnect', () => {
-                console.log('Socket disconnected.');
-            });
-
-            // --- IMPORTANT: LISTEN FOR THE FORCE-LOGOUT EVENT ---
-            socket.on('force-logout', (data) => {
-                console.warn('Force logout event received:', data.message);
-                // 1. Alert the user
-                alert(data.message);
-                // 2. Use the existing logout handler for cleanup and UI update
-                handleLogout();
-            });
-
-            // Listener for incoming chat messages
-            socket.on('receive-chat-message', (data) => {
-                if (chatModal.classList.contains('hidden') || data.sender !== currentChatPartner?.id) {
-                    const patientCard = document.querySelector(`[data-patient-id="${data.sender}"]`);
-                    if(patientCard) {
-                        let badge = patientCard.querySelector('.notification-badge');
-                        if(!badge) {
-                            badge = document.createElement('span');
-                            badge.className = 'notification-badge';
-                            patientCard.querySelector('.chat-btn').parentElement.style.position = 'relative';
-                            patientCard.querySelector('.chat-btn').parentElement.appendChild(badge);
+                /**
+                 * =================================================================
+                 * AUTHENTICATION MODULE
+                 * =================================================================
+                 */
+                Auth: {
+                    async handleLogin(event) {
+                        event.preventDefault();
+                        App.UI.clearError(App.elements.loginError);
+                        const email = App.elements.loginForm.querySelector('#login-email').value;
+                        const password = App.elements.loginForm.querySelector('#login-password').value;
+                        try {
+                            const data = await App.API.login(email, password);
+                            this.processAuthSuccess(data);
+                        } catch (error) {
+                            App.UI.displayError(App.elements.loginError, error.message);
                         }
-                        badge.textContent = (parseInt(badge.textContent) || 0) + 1;
-                        badge.classList.remove('hidden');
+                    },
+
+                    async handleRegister(event) {
+                        event.preventDefault();
+                        App.UI.clearError(App.elements.registerError);
+                        const name = App.elements.registerForm.querySelector('#register-name').value;
+                        const email = App.elements.registerForm.querySelector('#register-email').value;
+                        const password = App.elements.registerForm.querySelector('#register-password').value;
+                        const status = App.elements.registerForm.querySelector('#register-status').value;
+                        try {
+                            const data = await App.API.register({ name, email, password, status });
+                            this.processAuthSuccess(data);
+                        } catch (error) {
+                            App.UI.displayError(App.elements.registerError, error.message);
+                        }
+                    },
+
+                    processAuthSuccess(data) {
+                        localStorage.setItem('matru-care-token', data.token);
+                        localStorage.setItem('matru-care-user', JSON.stringify(data.user));
+                        App.Auth.checkLoginStatus();
+                    },
+                    
+                    checkLoginStatus() {
+                        const token = localStorage.getItem('matru-care-token');
+                        const user = JSON.parse(localStorage.getItem('matru-care-user'));
+                        if (token && user) {
+                            App.state.token = token;
+                            App.state.currentUser = user;
+                            App.Socket.connect();
+                            if (user.status === 'Doctor') {
+                                App.UI.showDoctorApp();
+                            } else {
+                                App.UI.showMotherApp();
+                            }
+                        } else {
+                            App.UI.showAuthForm('login');
+                        }
+                    },
+
+                    logout() {
+                        if (App.state.socket) App.state.socket.disconnect();
+                        localStorage.removeItem('matru-care-token');
+                        localStorage.removeItem('matru-care-user');
+                        App.state.token = null;
+                        App.state.currentUser = null;
+                        App.UI.showAuthForm('login');
                     }
-                    messagesNotificationBadge.classList.remove('hidden');
-                } else {
-                    appendMessage(data.message, 'received');
-                }
-                if (messagesContent.offsetParent !== null) {
-                    fetchAndDisplayMessages();
-                }
-            });
-        };
+                },
 
-        const openChat = async (partner) => {
-            currentChatPartner = partner;
-            chatPartnerName.textContent = partner.name;
-            chatMessagesDiv.innerHTML = ''; // Clear previous messages
-            chatModal.classList.remove('hidden');
+                /**
+                 * =================================================================
+                 * API MODULE
+                 * =================================================================
+                 */
+                API: {
+                    async request(endpoint, options = {}) {
+                        const headers = { 'Content-Type': 'application/json', ...options.headers };
+                        if (App.state.token) {
+                            headers['x-auth-token'] = App.state.token;
+                        }
+                        const response = await fetch(`${App.config.API_BASE_URL}${endpoint}`, { ...options, headers });
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data.msg || `API Error on ${endpoint}`);
+                        return data;
+                    },
 
-            const patientCard = document.querySelector(`[data-patient-id="${partner.id}"]`);
-            if (patientCard) {
-                const badge = patientCard.querySelector('.notification-badge');
-                if (badge) {
-                    badge.textContent = '';
-                    badge.classList.add('hidden');
-                }
-            }
+                    login(email, password) {
+                        return this.request('/api/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+                    },
+                    
+                    register(userData) {
+                        return this.request('/api/register', { method: 'POST', body: JSON.stringify(userData) });
+                    },
+                    
+                    fetchPatients() {
+                        return this.request('/api/doctor/patients');
+                    },
+                    
+                    fetchDoctorForMother() {
+                        return this.request('/api/mother/doctor');
+                    },
 
-            const token = localStorage.getItem('matru-care-token');
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/chat/history/${partner.id}`, {
-                    headers: { 'x-auth-token': token }
-                });
-                const messages = await response.json();
-                const currentUser = JSON.parse(localStorage.getItem('matru-care-user'));
-                messages.forEach(msg => {
-                    const type = msg.sender._id === currentUser.id ? 'sent' : 'received';
-                    appendMessage(msg.message, type);
-                });
-            } catch (error) {
-                chatMessagesDiv.innerHTML = '<p class="text-red-500">Could not load chat history.</p>';
-            }
-        };
+                    fetchChatHistory(partnerId) {
+                        return this.request(`/api/chat/history/${partnerId}`);
+                    }
+                },
+                
+                /**
+                 * =================================================================
+                 * CHAT MODULE
+                 * =================================================================
+                 */
+                Chat: {
+                    async openForMother() {
+                        try {
+                            const doctor = await App.API.fetchDoctorForMother();
+                            const partner = { id: doctor.userId, name: `Dr. ${doctor.name}` };
+                            App.state.currentChatPartner = partner;
+                            App.UI.openChatModal(partner);
+                            await this.loadHistory(partner.id, App.elements.chatMessagesDiv);
+                        } catch (error) {
+                            alert(error.message);
+                        }
+                    },
+                    
+                    async openForDoctor(partner) {
+                        App.state.currentChatPartner = partner;
+                        App.UI.openChatView(partner);
+                        await this.loadHistory(partner.id, App.elements.chatMessagesView);
+                    },
 
-        const appendMessage = (message, type) => {
-            const bubbleClass = type === 'sent' ? 'chat-bubble-sent self-end' : 'chat-bubble-received self-start';
-            const messageEl = `<div class="max-w-xs md:max-w-md p-3 w-auto ${bubbleClass}">${message}</div>`;
-            chatMessagesDiv.insertAdjacentHTML('beforeend', messageEl);
-            chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
-        };
+                    async loadHistory(partnerId, container) {
+                        container.innerHTML = '';
+                        let lastMessageDate = null;
+                        try {
+                            const messages = await App.API.fetchChatHistory(partnerId);
+                            const unreadMessageIds = [];
+                            messages.forEach(msg => {
+                                const messageDate = new Date(msg.timestamp).toDateString();
+                                if (messageDate !== lastMessageDate) {
+                                    App.UI.addDaySeparator(messageDate, container);
+                                    lastMessageDate = messageDate;
+                                }
+                                const type = msg.sender._id === App.state.currentUser.id ? 'sent' : 'received';
+                                App.UI.appendMessage(msg, type, container);
+                                if (type === 'received' && msg.status !== 'read') {
+                                    unreadMessageIds.push(msg._id);
+                                }
+                            });
+                            if (unreadMessageIds.length > 0) {
+                                App.Socket.emit('mark-as-read', { messageIds: unreadMessageIds, senderId: partnerId });
+                            }
+                        } catch (error) {
+                            container.innerHTML = `<p class="text-red-500 text-center">${error.message}</p>`;
+                        }
+                    },
+                    
+                    handleSendMessage(event, inputElement, container) {
+                        event.preventDefault();
+                        const messageText = inputElement.value.trim();
+                        if (messageText && App.state.currentChatPartner) {
+                            const tempId = `temp_${Date.now()}`;
+                            const messageObject = { _id: tempId, message: messageText, timestamp: new Date().toISOString(), status: 'sent' };
+                            App.UI.appendMessage(messageObject, 'sent', container);
+                            App.Socket.emit('send-chat-message', {
+                                receiverId: App.state.currentChatPartner.id,
+                                message: messageText,
+                                tempId: tempId
+                            });
+                            inputElement.value = '';
+                        }
+                    }
+                },
+                
+                /**
+                 * =================================================================
+                 * SOCKET HANDLER MODULE
+                 * =================================================================
+                 */
+                Socket: {
+                    connect() {
+                        if (App.state.socket) App.state.socket.disconnect();
+                        App.state.socket = io(App.config.API_BASE_URL);
+                        App.state.socket.on('connect', () => {
+                            console.log('Socket connected:', App.state.socket.id);
+                            this.emit('join-room', App.state.currentUser.id);
+                        });
+                        this.bindEvents();
+                    },
 
-        chatForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const message = chatInput.value.trim();
-            if (message && currentChatPartner) {
-                const token = localStorage.getItem('matru-care-token');
-                fetch(`${API_BASE_URL}/api/chat/send`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
-                    body: JSON.stringify({ receiverId: currentChatPartner.id, message }),
-                });
-                appendMessage(message, 'sent');
-                chatInput.value = '';
-            }
-        });
+                    emit(event, data) {
+                        if (App.state.socket) App.state.socket.emit(event, data);
+                    },
 
-        closeChatButton.addEventListener('click', () => {
-            chatModal.classList.add('hidden');
-            currentChatPartner = null;
-        });
+                    bindEvents() {
+                        App.state.socket.on('receive-chat-message', this.onReceiveMessage);
+                        App.state.socket.on('message-status-update', this.onStatusUpdate);
+                        App.state.socket.on('messages-read-by-recipient', this.onMessagesRead);
+                    },
 
-        // --- AUTHENTICATION LOGIC ---
-        const checkLoginStatus = () => {
-            const token = localStorage.getItem('matru-care-token');
-            const user = JSON.parse(localStorage.getItem('matru-care-user'));
-            if (token && user) {
-                // Call the new, comprehensive socket setup function
-                setupSocketConnection(user);
-                if (user.status === 'Doctor') {
-                    showDoctorApp({ ...user, token });
-                } else {
-                    showMotherApp(user);
-                }
-            } else {
-                showForms();
-            }
-        };
+                    onReceiveMessage(msg) {
+                        const isChatOpen = (!App.elements.chatInterface.classList.contains('hidden') || !App.elements.chatModal.classList.contains('hidden'));
+                        const isCorrectPartner = msg.sender._id === App.state.currentChatPartner?.id;
 
-        const handleLogout = () => {
-            if (socket) socket.disconnect();
-            localStorage.removeItem('matru-care-token');
-            localStorage.removeItem('matru-care-user');
-            showForms();
-        };
+                        if (isChatOpen && isCorrectPartner) {
+                            const container = App.state.currentUser.status === 'Doctor' ? App.elements.chatMessagesView : App.elements.chatMessagesDiv;
+                            App.UI.appendMessage(msg, 'received', container);
+                            if (document.hasFocus()) {
+                                App.Socket.emit('mark-as-read', { messageIds: [msg._id], senderId: msg.sender._id });
+                            }
+                        } else {
+                            App.UI.showNotification(msg.sender._id);
+                        }
+                    },
+                    
+                    onStatusUpdate({ messageId, status }) {
+                        const messageEl = document.querySelector(`[data-message-id="${messageId}"]`);
+                        if (messageEl) {
+                            const statusEl = messageEl.querySelector('.message-status');
+                            if (statusEl) statusEl.innerHTML = App.UI.renderTicks(status);
+                        }
+                    },
 
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            loginError.classList.add('hidden');
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password }),
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.msg || 'Login failed');
-                localStorage.setItem('matru-care-token', data.token);
-                localStorage.setItem('matru-care-user', JSON.stringify(data.user));
-                checkLoginStatus();
-            } catch (error) {
-                loginError.textContent = error.message;
-                loginError.classList.remove('hidden');
-            }
-        });
+                    onMessagesRead({ messageIds }) {
+                        messageIds.forEach(id => {
+                            const messageEl = document.querySelector(`[data-message-id="${id}"]`);
+                            if (messageEl) {
+                                const statusEl = messageEl.querySelector('.message-status');
+                                if (statusEl) statusEl.innerHTML = App.UI.renderTicks('read');
+                            }
+                        });
+                    }
+                },
 
-        registerForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            registerError.classList.add('hidden');
-            const name = document.getElementById('register-name').value;
-            const email = document.getElementById('register-email').value;
-            const password = document.getElementById('register-password').value;
-            const status = document.getElementById('register-status').value;
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, password, status }),
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.msg || 'Registration failed');
-                localStorage.setItem('matru-care-token', data.token);
-                localStorage.setItem('matru-care-user', JSON.stringify(data.user));
-                checkLoginStatus();
-            } catch (error) {
-                registerError.textContent = error.message;
-                registerError.classList.remove('hidden');
-            }
-        });
+                /**
+                 * =================================================================
+                 * UI MODULE (DOM Manipulation & Rendering)
+                 * =================================================================
+                 */
+                UI: {
+                    showMotherApp() {
+                        this.hideAll();
+                        App.elements.mainApp.classList.remove('hidden');
+                        App.elements.motherNameSpan.textContent = App.state.currentUser.name;
+                    },
 
-        // --- DOCTOR & MOTHER DASHBOARD LOGIC ---
-        const fetchPatients = async (token) => {
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/doctor/patients`, {
-                    headers: { 'x-auth-token': token }
-                });
-                if (!response.ok) throw new Error('Failed to fetch patients');
-                const patients = await response.json();
-                displayPatients(patients);
-            } catch (error) {
-                patientsListDiv.innerHTML = `<p class="text-red-500">${error.message}</p>`;
-            }
-        };
+                    showDoctorApp() {
+                        this.hideAll();
+                        App.elements.doctorDashboard.classList.remove('hidden');
+                        App.elements.doctorNameSpan.textContent = App.state.currentUser.name;
+                        this.switchTab('patients');
+                        App.API.fetchPatients().then(patients => this.displayPatients(patients)).catch(err => this.displayError(App.elements.patientsListDiv, err.message));
+                    },
+                    
+                    showAuthForm(type) {
+                        this.hideAll();
+                        App.elements.formsSection.classList.remove('hidden');
+                        if (type === 'register') {
+                            App.elements.loginFormContainer.classList.add('hidden');
+                            App.elements.registerFormContainer.classList.remove('hidden');
+                        } else {
+                            App.elements.registerFormContainer.classList.add('hidden');
+                            App.elements.loginFormContainer.classList.remove('hidden');
+                        }
+                    },
 
-        const displayPatients = (patients) => {
-            patientsListDiv.innerHTML = '';
-            if (patients.length === 0) {
-                patientsListDiv.innerHTML = '<p class="text-gray-500">You have no assigned patients.</p>';
-                return;
-            }
-            patients.forEach(patient => {
-                const patientCard = document.createElement('div');
-                patientCard.className = 'bg-white p-4 rounded-lg shadow-md flex items-center justify-between';
-                patientCard.setAttribute('data-patient-id', patient.userId);
-                patientCard.innerHTML = `
-                    <div class="flex items-center">
-                        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-4">
-                            <span class="text-xl font-bold doctor-primary">${patient.name.charAt(0)}</span>
-                        </div>
-                        <div>
-                            <p class="font-bold text-gray-800">${patient.name}</p>
-                            <p class="text-sm text-gray-500">${patient.email}</p>
-                        </div>
-                    </div>
-                    <div class="flex space-x-2 relative">
-                        <button title="Chat" class="chat-btn p-2 rounded-full hover:bg-gray-200 transition">
-                            <i class="fas fa-comment-dots text-gray-600"></i>
-                        </button>
-                        <button title="Video Call" class="p-2 rounded-full hover:bg-gray-200 transition">
-                            <i class="fas fa-video text-gray-600"></i>
-                        </button>
-                    </div>
-                `;
-                patientCard.querySelector('.chat-btn').addEventListener('click', () => {
-                    openChat({ id: patient.userId, name: patient.name });
-                });
-                patientsListDiv.appendChild(patientCard);
-            });
-        };
+                    hideAll() {
+                        App.elements.mainApp.classList.add('hidden');
+                        App.elements.doctorDashboard.classList.add('hidden');
+                        App.elements.formsSection.classList.add('hidden');
+                    },
 
-        const fetchAndDisplayMessages = async () => {
-            const token = localStorage.getItem('matru-care-token');
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/doctor/patients`, {
-                    headers: { 'x-auth-token': token }
-                });
-                if (!response.ok) throw new Error('Failed to fetch patients for messaging.');
-                const patients = await response.json();
+                    displayError(element, message) {
+                        element.textContent = message;
+                        element.classList.remove('hidden');
+                    },
 
-                messageList.innerHTML = '';
-                if (patients.length === 0) {
-                    messageList.innerHTML = '<p class="text-gray-500">You have no patients to message.</p>';
-                    return;
-                }
+                    clearError(element) {
+                        element.textContent = '';
+                        element.classList.add('hidden');
+                    },
+                    
+                    toggleDropdown(dropdown) {
+                        dropdown.classList.toggle('hidden');
+                    },
+                    
+                    closeAllDropdowns() {
+                        if (!App.elements.profileDropdown.classList.contains('hidden')) App.elements.profileDropdown.classList.add('hidden');
+                        if (!App.elements.doctorProfileDropdown.classList.contains('hidden')) App.elements.doctorProfileDropdown.classList.add('hidden');
+                    },
+                    
+                    switchTab(activeTab, options = {}) {
+                        const { tabs, contents } = {
+                            tabs: { patients: App.elements.tabPatients, appointments: App.elements.tabAppointments, messages: App.elements.tabMessages },
+                            contents: { patients: App.elements.patientsContent, appointments: App.elements.appointmentsContent, messages: App.elements.messagesContent, details: App.elements.doctorDetailsContent }
+                        };
+                        Object.values(tabs).forEach(tab => tab.classList.remove('border-blue-500', 'text-blue-600'));
+                        Object.values(contents).forEach(content => content.classList.add('hidden'));
 
-                patients.forEach(patient => {
-                    const messageCard = document.createElement('div');
-                    messageCard.className = 'bg-white p-4 rounded-lg shadow-md flex items-center justify-between cursor-pointer hover:bg-gray-50';
-                    messageCard.innerHTML = `
-                        <div class="flex items-center">
-                            <div class="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center mr-4">
-                                <span class="text-xl font-bold matru-pink">${patient.name.charAt(0)}</span>
+                        if (tabs[activeTab]) tabs[activeTab].classList.add('border-blue-500', 'text-blue-600');
+                        if (contents[activeTab]) contents[activeTab].classList.remove('hidden');
+
+                        if (activeTab === 'messages') {
+                            App.elements.messagesNotificationBadge.classList.add('hidden');
+                            this.resetChatView();
+                            App.API.fetchPatients().then(patients => {
+                                this.displayConversations(patients);
+                                if (options.openChatWith) {
+                                    const card = document.querySelector(`[data-conversation-id="${options.openChatWith.id}"]`);
+                                    if (card) card.click();
+                                }
+                            });
+                        }
+                    },
+                    
+                    displayPatients(patients) {
+                        const list = App.elements.patientsListDiv;
+                        list.innerHTML = '';
+                        if (patients.length === 0) { list.innerHTML = '<p class="text-gray-500">You have no assigned patients.</p>'; return; }
+                        patients.forEach(patient => {
+                            const card = document.createElement('div');
+                            card.className = 'bg-white p-4 rounded-lg shadow-md flex items-center justify-between';
+                            card.setAttribute('data-patient-id', patient.userId);
+                            card.innerHTML = `<div class="flex items-center"><div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-4"><span class="text-xl font-bold doctor-primary">${patient.name.charAt(0)}</span></div><div><p class="font-bold text-gray-800">${patient.name}</p><p class="text-sm text-gray-500">${patient.email}</p></div></div><div class="flex space-x-2 relative"><button title="Chat" class="chat-btn p-2 rounded-full hover:bg-gray-200 transition"><i class="fas fa-comment-dots text-gray-600"></i></button><button title="Video Call" class="p-2 rounded-full hover:bg-gray-200 transition"><i class="fas fa-video text-gray-600"></i></button></div>`;
+                            card.querySelector('.chat-btn').addEventListener('click', () => this.switchTab('messages', { openChatWith: { id: patient.userId, name: patient.name } }));
+                            list.appendChild(card);
+                        });
+                    },
+                    
+                    displayConversations(patients) {
+                        const list = App.elements.conversationList;
+                        list.innerHTML = '';
+                        if (patients.length === 0) { list.innerHTML = '<p class="text-gray-500 p-4">You have no patients to message.</p>'; return; }
+                        patients.forEach(patient => {
+                            const card = document.createElement('div');
+                            card.className = 'p-3 rounded-lg flex items-center justify-between cursor-pointer hover:bg-gray-100';
+                            card.setAttribute('data-conversation-id', patient.userId);
+                            card.innerHTML = `<div class="flex items-center"><div class="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center mr-3 relative"><span class="text-lg font-bold matru-pink">${patient.name.charAt(0)}</span><span class="notification-badge hidden absolute top-0 right-0 transform translate-x-1/4 -translate-y-1/4 w-5 h-5 text-xs">!</span></div><div><p class="font-semibold text-gray-800">${patient.name}</p></div></div>`;
+                            card.addEventListener('click', () => {
+                                document.querySelectorAll('#conversation-list > div').forEach(el => el.classList.remove('bg-blue-100'));
+                                card.classList.add('bg-blue-100');
+                                App.Chat.openForDoctor({ id: patient.userId, name: patient.name });
+                            });
+                            list.appendChild(card);
+                        });
+                    },
+                    
+                    renderTicks: (status) => {
+                        if (status === 'read') return '<i class="fas fa-check-double text-sky-400"></i>';
+                        if (status === 'delivered') return '<i class="fas fa-check-double text-gray-400"></i>';
+                        return '<i class="fas fa-check text-gray-400"></i>';
+                    },
+
+                    formatTimestamp: (isoString) => {
+                        if (!isoString) return '';
+                        return new Date(isoString).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                    },
+                    
+                    addDaySeparator(dateString, container) {
+                        const today = new Date().toDateString();
+                        const yesterday = new Date(Date.now() - 86400000).toDateString();
+                        let label = (dateString === today) ? 'TODAY' : (dateString === yesterday) ? 'YESTERDAY' : new Date(dateString).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+                        container.insertAdjacentHTML('beforeend', `<div class="text-center my-2"><span class="bg-gray-200 text-gray-600 text-xs font-semibold px-2 py-1 rounded-full">${label}</span></div>`);
+                    },
+
+                    appendMessage(message, type, container) {
+                        const bubbleClass = type === 'sent' ? 'chat-bubble-sent self-end' : 'chat-bubble-received self-start';
+                        const messageEl = document.createElement('div');
+                        messageEl.className = `max-w-xs md:max-w-md p-3 w-auto relative ${bubbleClass}`;
+                        messageEl.setAttribute('data-message-id', message._id);
+
+                        messageEl.innerHTML = `
+                            <div class="pb-2">
+                                <span class="pr-12 break-words">${message.message}</span>
                             </div>
-                            <div>
-                                <p class="font-bold text-gray-800">${patient.name}</p>
-                                <p class="text-sm text-gray-500">Click to open chat</p>
+                            <div class="text-xs absolute bottom-1 right-2 flex items-center">
+                                <span class="mr-1 ${type === 'sent' ? 'text-blue-200' : 'text-gray-500'}">${this.formatTimestamp(message.timestamp)}</span>
+                                ${type === 'sent' ? `<span class="message-status">${this.renderTicks(message.status)}</span>` : ''}
                             </div>
-                        </div>
-                        <div class="text-xs text-gray-400">
-                            <i class="fas fa-arrow-right"></i>
-                        </div>
-                    `;
-                    messageCard.addEventListener('click', () => {
-                        openChat({ id: patient.userId, name: patient.name });
-                        switchTab('patients');
-                    });
-                    messageList.appendChild(messageCard);
-                });
-            } catch (error) {
-                messageList.innerHTML = `<p class="text-red-500">${error.message}</p>`;
-            }
-        };
-        
-        motherChatButton.addEventListener('click', async () => {
-            const token = localStorage.getItem('matru-care-token');
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/mother/doctor`, {
-                    headers: { 'x-auth-token': token }
-                });
-                if (!response.ok) throw new Error('Could not find assigned doctor.');
-                const doctor = await response.json();
-                openChat({ id: doctor.userId, name: `Dr. ${doctor.name}` });
-            } catch (error) {
-                alert(error.message);
-            }
+                        `;
+                        container.appendChild(messageEl);
+                        container.scrollTop = container.scrollHeight;
+                    },
+
+                    openChatModal(partner) {
+                        App.elements.chatPartnerName.textContent = partner.name;
+                        App.elements.chatModal.classList.remove('hidden');
+                    },
+                    
+                    closeChatModal() {
+                        App.elements.chatModal.classList.add('hidden');
+                        App.state.currentChatPartner = null;
+                    },
+
+                    openChatView(partner) {
+                        App.elements.chatPlaceholder.classList.add('hidden');
+                        App.elements.chatInterface.classList.remove('hidden');
+                        App.elements.chatPartnerNameView.textContent = partner.name;
+                    },
+
+                    resetChatView() {
+                        App.elements.chatInterface.classList.add('hidden');
+                        App.elements.chatPlaceholder.classList.remove('hidden');
+                        App.state.currentChatPartner = null;
+                    },
+                    
+                    showNotification(senderId) {
+                        App.elements.messagesNotificationBadge.classList.remove('hidden');
+                        const isMessagesTabActive = !App.elements.messagesContent.classList.contains('hidden');
+                        if (isMessagesTabActive) {
+                            const card = document.querySelector(`[data-conversation-id="${senderId}"] .notification-badge`);
+                            if (card) {
+                                card.classList.remove('hidden');
+                                card.textContent = (parseInt(card.textContent) || 0) + 1;
+                            }
+                        }
+                    }
+                }
+            };
+
+            // Start the application
+            App.init();
         });
-
-        const switchTab = (activeTab) => {
-            [tabPatients, tabAppointments, tabMessages].forEach(tab => {
-                tab.classList.remove('border-blue-500', 'text-blue-600');
-                tab.classList.add('border-transparent', 'text-gray-500');
-            });
-            [patientsContent, appointmentsContent, messagesContent, doctorDetailsContent].forEach(content => content.classList.add('hidden'));
-
-            if (activeTab === 'patients') {
-                tabPatients.classList.add('border-blue-500', 'text-blue-600');
-                patientsContent.classList.remove('hidden');
-            } else if (activeTab === 'appointments') {
-                tabAppointments.classList.add('border-blue-500', 'text-blue-600');
-                appointmentsContent.classList.remove('hidden');
-            } else if (activeTab === 'messages') {
-                tabMessages.classList.add('border-blue-500', 'text-blue-600');
-                messagesContent.classList.remove('hidden');
-                messagesNotificationBadge.classList.add('hidden');
-                fetchAndDisplayMessages();
-            } else if (activeTab === 'details') {
-                doctorDetailsContent.classList.remove('hidden');
-            }
-        };
-
-        // --- EVENT LISTENERS ---
-        logoutButton.addEventListener('click', handleLogout);
-        doctorLogoutButton.addEventListener('click', handleLogout);
-        showRegisterLink.addEventListener('click', (e) => { e.preventDefault(); loginFormContainer.classList.add('hidden'); registerFormContainer.classList.remove('hidden'); });
-        showLoginLink.addEventListener('click', (e) => { e.preventDefault(); registerFormContainer.classList.add('hidden'); loginFormContainer.classList.remove('hidden'); });
-        profileButton.addEventListener('click', (e) => { e.stopPropagation(); profileDropdown.classList.toggle('hidden'); });
-        doctorProfileButton.addEventListener('click', (e) => { e.stopPropagation(); doctorProfileDropdown.classList.toggle('hidden'); });
-        document.addEventListener('click', () => {
-            if (!profileDropdown.classList.contains('hidden')) profileDropdown.classList.add('hidden');
-            if (!doctorProfileDropdown.classList.contains('hidden')) doctorProfileDropdown.classList.add('hidden');
-        });
-        tabPatients.addEventListener('click', () => switchTab('patients'));
-        tabAppointments.addEventListener('click', () => switchTab('appointments'));
-        tabMessages.addEventListener('click', () => switchTab('messages'));
-        updateProfileLink.addEventListener('click', (e) => { e.preventDefault(); switchTab('details'); doctorProfileDropdown.classList.add('hidden'); });
-
-        // --- INITIALIZATION ---
-        checkLoginStatus();
-    });
-</script>
+    </script>
 </body>
 </html>
